@@ -654,10 +654,11 @@
                     const card = document.createElement('div');
                     card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
                     
-                    let buttons = `<button title="Ver Detalhes" class="action-button view-details-button p-2 rounded-full text-gray-300 bg-gray-700 hover:bg-gray-600 transition-all duration-200"><i class="fa-solid fa-eye w-4 h-4"></i></button>`;
-                    if (form.status === 'Finalizada' && !form.isArchived) {
-                        buttons += `<button title="Arquivar Ficha" class="action-button archive-order-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-box-archive w-4 h-4"></i></button>`;
-                    }
+                    let buttons = `
+                        <button title="Ver Detalhes" class="action-button view-details-button p-2 rounded-full text-gray-300 bg-gray-700 hover:bg-gray-600 transition-all duration-200"><i class="fa-solid fa-eye w-4 h-4"></i></button>
+                        ${form.status === 'Finalizada' && !form.isArchived ? `<button title="Arquivar Ficha" class="action-button archive-order-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-box-archive w-4 h-4"></i></button>` : ''}
+                        <button title="Excluir Ficha" class="action-button delete-order-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-trash-can w-4 h-4"></i></button>
+                    `;
 
                     card.innerHTML = `
                         <div class="flex-grow">
@@ -667,8 +668,13 @@
                         <div class="flex items-center gap-2">${buttons}</div>`;
                     
                     card.querySelector('.view-details-button').onclick = () => viewFormDetails(form.id);
-                    if(card.querySelector('.archive-order-button')) {
-                        card.querySelector('.archive-order-button').onclick = () => archiveOrder(form.id);
+                    const archiveButton = card.querySelector('.archive-order-button');
+                    if (archiveButton) {
+                        archiveButton.onclick = () => archiveOrder(form.id);
+                    }
+                    const deleteButton = card.querySelector('.delete-order-button');
+                    if(deleteButton) {
+                        deleteButton.onclick = () => deleteOrder(form.id, latest.tag);
                     }
 
                     listContainer.appendChild(card);
@@ -697,6 +703,22 @@
                     } catch (e) {
                         showError('Erro ao arquivar a ficha.');
                         console.error("Archive error:", e);
+                    }
+                }
+            );
+        }
+
+        async function deleteOrder(formId, formTag) {
+            showConfirmationModal(
+                'Excluir Ficha Permanentemente',
+                `Tem certeza que deseja EXCLUIR a ficha para a TAG "${formTag || 'Sem TAG'}"? Esta ação é irreversível.`,
+                async () => {
+                    try {
+                        await deleteDoc(doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId));
+                        showSuccess("Ficha excluída com sucesso.");
+                    } catch (e) {
+                        showError("Falha ao excluir a ficha.");
+                        console.error("Delete order error:", e);
                     }
                 }
             );
