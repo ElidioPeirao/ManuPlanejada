@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Aulas Pro</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- jsPDF & jsPDF-AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.autotable.umd.min.js"></script>
+
+    <style>
+        /* Scrollbar personalizada para uma melhor experiência em tema escuro */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f97316; /* orange-500 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ea580c; /* orange-600 */
+        }
+        /* Esconder setas de input de número */
+        input[type='number']::-webkit-inner-spin-button,
+        input[type='number']::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type='number'] {
+            -moz-appearance: textfield;
+        }
+        /* Estilo para aba ativa */
+        .nav-tab.active {
+            background-color: #f97316; /* orange-500 */
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans antialiased">
+
+    <!-- Spinner de Carregamento -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="fas fa-spinner fa-spin text-orange-500 text-5xl"></div>
+    </div>
+
+    <!-- Container de Autenticação -->
+    <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8 space-y-6 border border-gray-700">
+            <div class="text-center">
+                 <img src="https://i.imgur.com/EDw5HWL.png" alt="Logo Gestor de Aulas Pro" class="mx-auto h-24 w-auto">
+                 <p class="text-gray-400 mt-4">Faça login para continuar</p>
+            </div>
+
+            <div id="auth-error" class="text-red-400 text-center h-5 transition-opacity duration-300"></div>
+
+            <!-- Formulário de Login -->
+            <form id="login-form" class="space-y-4">
+                <input type="email" id="login-email" placeholder="E-mail" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-400">
+                <input type="password" id="login-password" placeholder="Senha" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-400">
+                <button type="submit" class="w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition duration-300 transform hover:scale-105 shadow-lg">Entrar</button>
+            </form>
+
+            <!-- Formulário de Cadastro -->
+            <form id="register-form" class="space-y-4 hidden">
+                <input type="email" id="register-email" placeholder="E-mail" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-400">
+                <input type="password" id="register-password" placeholder="Senha (mínimo 6 caracteres)" required class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-400">
+                <button type="submit" class="w-full py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition duration-300">Cadastrar</button>
+            </form>
+
+            <p class="text-center text-sm">
+                <a href="#" id="toggle-auth-mode" class="font-medium text-orange-500 hover:text-orange-400 transition-colors">Não tem uma conta? Cadastre-se</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Container do Aplicativo -->
+    <div id="app-container" class="hidden">
+        <header class="bg-gray-800 shadow-lg p-4 flex justify-between items-center sticky top-0 z-40 border-b border-gray-700">
+            <img src="https://i.imgur.com/EDw5HWL.png" alt="Logo Gestor de Aulas Pro" class="h-10 w-auto">
+            <div class="flex items-center">
+                <span id="user-email" class="text-gray-400 mr-4 text-sm hidden md:inline"></span>
+                <button id="logout-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition duration-300 text-sm">
+                    <i class="fas fa-sign-out-alt mr-1"></i> Sair
+                </button>
+            </div>
+        </header>
+
+        <nav class="bg-gray-800 border-b-2 border-orange-500 sticky top-[72px] z-40">
+            <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+                <div class="relative flex items-center justify-center h-16">
+                    <div id="nav-tabs" class="flex space-x-1 sm:space-x-2 md:space-x-4">
+                        <button data-tab="dashboard-section" class="nav-tab active flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-300"><i class="fas fa-chart-pie mr-2"></i><span class="hidden md:inline">Dashboard</span></button>
+                        <button data-tab="turmas-section" class="nav-tab text-gray-300 hover:bg-gray-700 hover:text-white flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-300"><i class="fas fa-users mr-2"></i><span class="hidden md:inline">Turmas</span></button>
+                        <button data-tab="controle-aula-section" class="nav-tab text-gray-300 hover:bg-gray-700 hover:text-white flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-300"><i class="fas fa-clock mr-2"></i><span class="hidden md:inline">Controle</span></button>
+                        <button data-tab="notas-section" class="nav-tab text-gray-300 hover:bg-gray-700 hover:text-white flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-300"><i class="fas fa-marker mr-2"></i><span class="hidden md:inline">Notas</span></button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        <main class="p-4 md:p-6 lg:p-8">
+            <!-- Seção Dashboard -->
+            <section id="dashboard-section" class="app-section">
+                <h2 class="text-3xl font-bold mb-6 text-gray-200">Dashboard</h2>
+                <div id="stats-cards" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Cards de estatísticas serão injetados aqui -->
+                </div>
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-200">Tempo Total Fora da Sala por Turma (minutos)</h3>
+                    <div class="h-96">
+                       <canvas id="turmas-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção Gerenciar Turmas -->
+            <section id="turmas-section" class="app-section hidden">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h2 class="text-3xl font-bold text-gray-200">Minhas Turmas</h2>
+                    <button id="add-turma-btn" class="w-full md:w-auto px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition duration-300 flex items-center justify-center shadow-md">
+                        <i class="fas fa-plus mr-2"></i> Adicionar Turma
+                    </button>
+                </div>
+                <div id="turmas-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Cards de turmas serão injetados aqui -->
+                </div>
+            </section>
+
+            <!-- Seção Controle de Aula -->
+            <section id="controle-aula-section" class="app-section hidden">
+                <div id="aula-setup">
+                    <h2 class="text-3xl font-bold text-gray-200 mb-4">Controle de Aula</h2>
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 flex flex-col md:flex-row items-center gap-4">
+                        <select id="aula-turma-select" class="w-full md:flex-grow bg-gray-700 border border-gray-600 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="">Selecione uma turma para começar</option>
+                        </select>
+                        <button id="iniciar-aula-btn" class="w-full md:w-auto px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-md transition duration-300 flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                           <i class="fas fa-play mr-2"></i> Iniciar Aula
+                        </button>
+                    </div>
+                </div>
+                <div id="aula-live" class="hidden">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                        <h2 class="text-2xl font-bold text-gray-300">Aula em Andamento: <span id="live-turma-nome" class="text-orange-500"></span></h2>
+                        <button id="encerrar-aula-btn" class="w-full md:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition duration-300 flex items-center justify-center shadow-md">
+                           <i class="fas fa-stop-circle mr-2"></i> Encerrar Aula
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h3 class="font-bold text-lg mb-4 text-green-500 flex justify-between"><span><i class="fas fa-user-check mr-2"></i>Presentes</span> <span id="presentes-count" class="bg-green-500/20 text-green-400 px-2 rounded-full">0</span></h3>
+                            <div id="presentes-list" class="space-y-2 h-[60vh] overflow-y-auto pr-2"></div>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h3 class="font-bold text-lg mb-4 text-red-500 flex justify-between"><span><i class="fas fa-user-times mr-2"></i>Ausentes</span> <span id="ausentes-count" class="bg-red-500/20 text-red-400 px-2 rounded-full">0</span></h3>
+                            <div id="ausentes-list" class="space-y-2 h-[60vh] overflow-y-auto pr-2"></div>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                            <h3 class="font-bold text-lg mb-4 text-yellow-500 flex justify-between"><span><i class="fas fa-person-running mr-2"></i>Fora da Sala</span> <span id="fora-sala-count" class="bg-yellow-500/20 text-yellow-400 px-2 rounded-full">0</span></h3>
+                            <div id="fora-sala-list" class="space-y-2 h-[60vh] overflow-y-auto pr-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção Lançar Notas -->
+            <section id="notas-section" class="app-section hidden">
+                <h2 class="text-3xl font-bold text-gray-200 mb-4">Lançamento de Notas</h2>
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
+                    <div class="flex flex-col md:flex-row items-center gap-4 mb-6">
+                        <select id="notas-turma-select" class="w-full md:w-1/3 bg-gray-700 border border-gray-600 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="">1. Selecione uma turma</option>
+                        </select>
+                        <select id="notas-avaliacao-select" class="w-full md:w-1/3 bg-gray-700 border border-gray-600 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50" disabled>
+                            <option value="">2. Selecione uma avaliação</option>
+                        </select>
+                        <div class="flex gap-2">
+                             <button id="nova-avaliacao-btn" class="w-full md:w-auto px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition duration-300 flex items-center justify-center shadow-md disabled:opacity-50" disabled>
+                                 <i class="fas fa-plus"></i>
+                             </button>
+                             <button id="excluir-avaliacao-btn" class="w-full md:w-auto px-5 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition duration-300 flex items-center justify-center shadow-md hidden">
+                                 <i class="fas fa-trash-alt"></i>
+                             </button>
+                        </div>
+                    </div>
+                    <div id="notas-table-container" class="hidden">
+                        <h3 id="notas-table-title" class="text-xl font-semibold mb-4 text-orange-400"></h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-700/50">
+                                    <tr>
+                                        <th class="p-3 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Matrícula</th>
+                                        <th class="p-3 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Nome do Aluno</th>
+                                        <th class="p-3 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider w-32">Nota</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="notas-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="mt-6 flex flex-col md:flex-row justify-end items-center gap-4">
+                            <button id="salvar-notas-btn" class="w-full md:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md transition duration-300 flex items-center justify-center shadow-md">
+                                <i class="fas fa-save mr-2"></i> Salvar Notas
+                            </button>
+                            <button id="gerar-relatorio-notas-btn" class="w-full md:w-auto px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-md transition duration-300 flex items-center justify-center shadow-md">
+                                <i class="fas fa-file-pdf mr-2"></i> Gerar Relatório PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Container de Modais -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-70 z-40 hidden"></div>
+
+    <!-- Modal de Turma (Adicionar/Editar) -->
+    <div id="turma-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-gray-700">
+            <div class="p-5 border-b border-gray-700 flex justify-between items-center">
+                <h3 id="turma-modal-title" class="text-xl font-bold text-orange-500">Adicionar Nova Turma</h3>
+                <button class="close-modal-btn text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 flex-grow overflow-y-auto">
+                <form id="turma-form">
+                    <input type="hidden" id="turma-id">
+                    <div class="mb-4">
+                        <label for="turma-nome" class="block mb-2 text-sm font-medium text-gray-300">Nome da Turma</label>
+                        <input type="text" id="turma-nome" required class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-lg font-semibold text-gray-300">Alunos</h4>
+                        <div>
+                            <button type="button" id="import-alunos-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md transition mr-2"><i class="fas fa-upload mr-2"></i>Importar</button>
+                            <button type="button" id="add-aluno-field-btn" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-md transition"><i class="fas fa-plus mr-2"></i>Adicionar</button>
+                        </div>
+                    </div>
+                    <div id="alunos-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                        <!-- Campos de alunos serão injetados aqui -->
+                    </div>
+                </form>
+            </div>
+            <div class="p-4 bg-gray-800 border-t border-gray-700">
+                <button type="submit" form="turma-form" class="w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition duration-300">Salvar Turma</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Histórico do Aluno -->
+    <div id="aluno-historico-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-gray-700">
+            <div class="p-5 border-b border-gray-700 flex justify-between items-center">
+                <h3 id="aluno-historico-title" class="text-xl font-bold text-orange-500">Histórico do Aluno</h3>
+                <button class="close-modal-btn text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <div id="aluno-historico-content" class="p-6 flex-grow overflow-y-auto">
+                <!-- Conteúdo será injetado aqui -->
+            </div>
+            <div class="p-4 bg-gray-800 border-t border-gray-700 flex justify-end">
+                <button class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition close-modal-btn">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Importação de Alunos -->
+    <div id="import-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-xl border border-gray-700">
+            <div class="p-5 border-b border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-orange-500">Importar Alunos em Lote</h3>
+                <button class="close-modal-btn text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-400 mb-2 text-sm">Cole a lista de alunos abaixo. O formato esperado é: <br><code class="bg-gray-700 p-1 rounded text-xs">Número ID_Completo Nome do Aluno AI Nome_da_Turma Status</code></p>
+                <p class="text-yellow-400 mb-4 text-xs">Alunos com status "Evadido / Desistente" serão ignorados.</p>
+                <textarea id="import-textarea" rows="10" class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+            </div>
+            <div class="p-4 bg-gray-800 border-t border-gray-700 flex justify-end">
+                <button id="process-import-btn" class="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition">Processar e Adicionar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Saída de Aluno -->
+    <div id="saida-aluno-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-md border border-gray-700">
+            <div class="p-5 border-b border-gray-700">
+                <h3 class="text-xl font-bold text-orange-500">Registrar Saída de Aluno</h3>
+            </div>
+            <div class="p-6">
+                <p class="mb-4">Adicionar observação para a saída de <strong id="saida-aluno-nome" class="text-orange-400"></strong> (opcional):</p>
+                <input type="hidden" id="saida-aluno-matricula">
+                <textarea id="saida-observacao" rows="3" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+            </div>
+            <div class="p-4 bg-gray-800 border-t border-gray-700 flex justify-end gap-4">
+                <button class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition close-modal-btn">Cancelar</button>
+                <button id="confirm-saida-btn" class="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition">Confirmar Saída</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Resumo da Aula -->
+    <div id="resumo-aula-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-gray-700">
+            <div class="p-5 border-b border-gray-700">
+                <h3 class="text-xl font-bold text-orange-500">Resumo da Aula</h3>
+            </div>
+            <div id="resumo-aula-content" class="p-6 flex-grow overflow-y-auto">
+                <!-- Conteúdo será injetado aqui -->
+            </div>
+            <div class="p-4 bg-gray-800 border-t border-gray-700 flex justify-end gap-4">
+                <button class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition close-modal-btn">Fechar</button>
+                <button id="download-resumo-pdf-btn" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition disabled:opacity-50" disabled><i class="fas fa-file-pdf mr-2"></i>Baixar PDF</button>
+                <button id="salvar-resumo-btn" class="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition"><i class="fas fa-save mr-2"></i>Salvar Histórico</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação Genérico -->
+    <div id="confirm-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-sm border border-gray-700">
+            <div class="p-6 text-center">
+                <p id="confirm-modal-text" class="text-lg text-gray-200 mb-6"></p>
+                <div class="flex justify-center gap-4">
+                    <button class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition close-modal-btn">Cancelar</button>
+                    <button id="confirm-modal-confirm-btn" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Prompt Genérico -->
+    <div id="prompt-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-md border border-gray-700">
+            <div class="p-5 border-b border-gray-700">
+                <h3 id="prompt-modal-title" class="text-xl font-bold text-orange-500"></h3>
+            </div>
+            <div class="p-6">
+                <label id="prompt-modal-label" for="prompt-modal-input" class="block mb-2 text-sm font-medium text-gray-300"></label>
+                <input type="text" id="prompt-modal-input" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+            <div class="p-4 bg-gray-800 border-t border-gray-700 flex justify-end gap-4">
+                <button class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition close-modal-btn">Cancelar</button>
+                <button id="prompt-modal-confirm-btn" class="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.19.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/9.19.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            addDoc, 
+            setDoc,
+            getDoc, 
+            getDocs, 
+            deleteDoc, 
+            query, 
+            onSnapshot,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/9.19.1/firebase-firestore.js";
+
+        // ATENÇÃO: Substitua pela configuração do seu projeto Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCybmBGGc5YzcBb6oodzATYdzEQ3Orns0w",
+            authDomain: "barber-cf965.firebaseapp.com",
+            projectId: "barber-cf965",
+            storageBucket: "barber-cf965.appspot.com",
+            messagingSenderId: "9130383578",
+            appId: "1:9130383578:web:9697c23955ee575073ade3"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Variáveis de estado
+        let currentUser = null;
+        let turmasUnsubscribe = null;
+        let historicoUnsubscribe = null;
+        let turmasCache = [];
+        let historicoCache = [];
+        let liveAulaIntervals = [];
+        let turmasChartInstance = null;
+        let aulaDataForPDF = null;
+        
+        // Elementos do DOM
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const authError = document.getElementById('auth-error');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const toggleAuthModeLink = document.getElementById('toggle-auth-mode');
+        const userEmailSpan = document.getElementById('user-email');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // --- FUNÇÕES UTILITÁRIAS ---
+        const showLoader = () => loadingOverlay.classList.remove('hidden');
+        const hideLoader = () => loadingOverlay.classList.add('hidden');
+
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId)
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.getElementById('modal-backdrop').classList.remove('hidden');
+            }
+        };
+        
+        // Lógica de fechamento de modais corrigida
+        document.body.addEventListener('click', e => {
+            const closeButton = e.target.closest('.close-modal-btn');
+            if (closeButton) {
+                // Encontra o modal específico ao qual o botão pertence
+                const modalToHide = closeButton.closest('.fixed.inset-0.z-50');
+                
+                if (modalToHide) {
+                    // Esconde apenas o modal encontrado
+                    modalToHide.classList.add('hidden');
+
+                    // Verifica se ainda existe algum outro modal visível
+                    const anyOtherModalVisible = document.querySelector('.fixed.inset-0.z-50:not(.hidden)');
+
+                    // Se não houver mais nenhum modal visível, esconde o fundo escuro
+                    if (!anyOtherModalVisible) {
+                        document.getElementById('modal-backdrop').classList.add('hidden');
+                    }
+                }
+            }
+        });
+
+        function hideAllModals() {
+            document.querySelectorAll('.fixed.inset-0.z-50').forEach(modal => {
+                modal.classList.add('hidden');
+            });
+            document.getElementById('modal-backdrop').classList.add('hidden');
+        }
+        
+        // --- Lógica de Modais Customizados ---
+        const confirmModalConfirmBtn = document.getElementById('confirm-modal-confirm-btn');
+
+        function showConfirmModal(text, onConfirm) {
+            document.getElementById('confirm-modal-text').textContent = text;
+            showModal('confirm-modal');
+            
+            // Recria o botão para evitar múltiplos listeners
+            const newConfirmBtn = confirmModalConfirmBtn.cloneNode(true);
+            confirmModalConfirmBtn.parentNode.replaceChild(newConfirmBtn, confirmModalConfirmBtn);
+            
+            newConfirmBtn.addEventListener('click', () => {
+                hideAllModals();
+                onConfirm();
+            }, { once: true });
+        }
+
+        const promptModalConfirmBtn = document.getElementById('prompt-modal-confirm-btn');
+
+        function showPromptModal(title, label, onConfirm) {
+            document.getElementById('prompt-modal-title').textContent = title;
+            document.getElementById('prompt-modal-label').textContent = label;
+            const input = document.getElementById('prompt-modal-input')
+            input.value = '';
+            showModal('prompt-modal');
+            input.focus();
+
+            // Recria o botão para evitar múltiplos listeners
+            const newConfirmBtn = promptModalConfirmBtn.cloneNode(true);
+            promptModalConfirmBtn.parentNode.replaceChild(newConfirmBtn, promptModalConfirmBtn);
+
+            const confirmAction = () => {
+                const value = input.value.trim();
+                 if (value) {
+                     hideAllModals();
+                     onConfirm(value);
+                 }
+            };
+            
+            newConfirmBtn.addEventListener('click', confirmAction);
+            input.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmAction();
+                    // Remove o listener após execução para evitar chamadas múltiplas
+                    input.removeEventListener('keydown', arguments.callee);
+                }
+            });
+        }
+
+        // --- AUTENTICAÇÃO ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                authContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                userEmailSpan.textContent = user.email;
+                initApp();
+            } else {
+                currentUser = null;
+                appContainer.classList.add('hidden');
+                authContainer.classList.remove('hidden');
+                userEmailSpan.textContent = '';
+                if (turmasUnsubscribe) turmasUnsubscribe();
+                if (historicoUnsubscribe) historicoUnsubscribe();
+                hideLoader();
+            }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoader();
+            authError.textContent = '';
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Erro no Login:", error);
+                authError.textContent = 'E-mail ou senha inválidos.';
+                hideLoader();
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoader();
+            authError.textContent = '';
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            if (password.length < 6) {
+                authError.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                hideLoader();
+                return;
+            }
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Erro no Cadastro:", error);
+                authError.textContent = 'Erro ao cadastrar. Tente outro e-mail.';
+                hideLoader();
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+        });
+
+        toggleAuthModeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.classList.toggle('hidden');
+            registerForm.classList.toggle('hidden');
+            if (registerForm.classList.contains('hidden')) {
+                toggleAuthModeLink.textContent = 'Não tem uma conta? Cadastre-se';
+                document.querySelector('#auth-container p.text-gray-400').textContent = 'Faça login para continuar';
+            } else {
+                toggleAuthModeLink.textContent = 'Já tem uma conta? Faça login';
+                document.querySelector('#auth-container p.text-gray-400').textContent = 'Crie sua conta';
+            }
+        });
+        
+        // --- INICIALIZAÇÃO DO APP ---
+        function initApp() {
+            if (!currentUser) return;
+            
+            const turmasRef = collection(db, `professores/${currentUser.uid}/turmas`);
+            turmasUnsubscribe = onSnapshot(query(turmasRef), (snapshot) => {
+                turmasCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+                hideLoader();
+            }, (error) => {
+                console.error("Erro ao buscar turmas:", error);
+                alert("Não foi possível carregar as turmas.");
+                hideLoader();
+            });
+
+            const historicoRef = collection(db, `professores/${currentUser.uid}/historicoAulas`);
+            historicoUnsubscribe = onSnapshot(query(historicoRef), (snapshot) => {
+                historicoCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if(!document.getElementById('dashboard-section').classList.contains('hidden')){
+                    renderDashboard();
+                }
+            }, (error) => {
+                console.error("Erro ao buscar histórico de aulas:", error);
+            });
+        }
+        
+        function renderAll() {
+            if (!currentUser) return;
+            const activeTab = document.querySelector('.nav-tab.active')?.dataset.tab;
+            if(!activeTab) return;
+            switch(activeTab) {
+                case 'dashboard-section': renderDashboard(); break;
+                case 'turmas-section': renderTurmas(); break;
+                case 'controle-aula-section': renderControleDeAula(); break;
+                case 'notas-section': renderNotas(); break;
+            }
+        }
+        
+        // --- NAVEGAÇÃO ---
+        const navTabs = document.getElementById('nav-tabs');
+        const appSections = document.querySelectorAll('.app-section');
+
+        navTabs.addEventListener('click', (e) => {
+            const button = e.target.closest('.nav-tab');
+            if (!button) return;
+
+            const tabId = button.dataset.tab;
+
+            navTabs.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active', 'text-white');
+                tab.classList.add('text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
+            });
+            button.classList.add('active', 'text-white');
+            button.classList.remove('text-gray-300', 'hover:bg-gray-700', 'hover:text-white');
+            
+            appSections.forEach(section => {
+                section.classList.add('hidden');
+            });
+
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            renderAll();
+        });
+
+        // --- DASHBOARD ---
+        const statsCardsContainer = document.getElementById('stats-cards');
+        const turmasChartCanvas = document.getElementById('turmas-chart');
+
+        function renderDashboard() {
+            const totalTurmas = turmasCache.length;
+            const totalAlunos = turmasCache.reduce((sum, turma) => sum + (turma.alunos ? turma.alunos.length : 0), 0);
+            const totalAulas = historicoCache.length;
+            
+            statsCardsContainer.innerHTML = `
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 flex items-center gap-4">
+                    <i class="fas fa-users text-orange-500 text-3xl"></i>
+                    <div>
+                        <p class="text-gray-400 text-sm">Total de Turmas</p>
+                        <p class="text-2xl font-bold">${totalTurmas}</p>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 flex items-center gap-4">
+                    <i class="fas fa-user-graduate text-orange-500 text-3xl"></i>
+                    <div>
+                        <p class="text-gray-400 text-sm">Total de Alunos</p>
+                        <p class="text-2xl font-bold">${totalAlunos}</p>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 flex items-center gap-4">
+                    <i class="fas fa-chalkboard text-orange-500 text-3xl"></i>
+                    <div>
+                        <p class="text-gray-400 text-sm">Aulas Realizadas</p>
+                        <p class="text-2xl font-bold">${totalAulas}</p>
+                    </div>
+                </div>
+            `;
+            
+            renderChart();
+        }
+
+        function renderChart() {
+            const dataPorTurma = {};
+            
+            historicoCache.forEach(aula => {
+                if (!dataPorTurma[aula.turmaNome]) {
+                    dataPorTurma[aula.turmaNome] = 0;
+                }
+                if(aula.saidas){
+                    aula.saidas.forEach(saida => {
+                        dataPorTurma[aula.turmaNome] += saida.tempoFora / 60; // Converter segundos para minutos
+                    });
+                }
+            });
+            
+            const labels = Object.keys(dataPorTurma);
+            const data = Object.values(dataPorTurma);
+
+            if (turmasChartInstance) {
+                turmasChartInstance.destroy();
+            }
+
+            turmasChartInstance = new Chart(turmasChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Tempo Fora (minutos)',
+                        data: data,
+                        backgroundColor: 'rgba(249, 115, 22, 0.6)',
+                        borderColor: 'rgba(249, 115, 22, 1)',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#d1d5db' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#d1d5db' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // --- GERENCIAR TURMAS ---
+        const turmasListContainer = document.getElementById('turmas-list');
+        const addTurmaBtn = document.getElementById('add-turma-btn');
+        const turmaForm = document.getElementById('turma-form');
+        const turmaModalTitle = document.getElementById('turma-modal-title');
+        const turmaIdInput = document.getElementById('turma-id');
+        const turmaNomeInput = document.getElementById('turma-nome');
+        const alunosListDiv = document.getElementById('alunos-list');
+        const addAlunoFieldBtn = document.getElementById('add-aluno-field-btn');
+
+        function renderTurmas() {
+            if (turmasCache.length === 0) {
+                turmasListContainer.innerHTML = `<p class="text-gray-400 col-span-full text-center">Nenhuma turma cadastrada. Clique em "Adicionar Turma" para começar.</p>`;
+                return;
+            }
+            turmasListContainer.innerHTML = turmasCache.sort((a,b) => a.nome.localeCompare(b.nome)).map(turma => `
+                <div class="bg-gray-800 p-5 rounded-lg shadow-lg border border-gray-700 transition transform hover:-translate-y-1">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="text-xl font-bold text-orange-500">${turma.nome}</h4>
+                            <p class="text-gray-400 text-sm">${turma.alunos ? turma.alunos.length : 0} alunos</p>
+                        </div>
+                        <div class="flex gap-2">
+                             <button data-id="${turma.id}" class="edit-turma-btn text-gray-400 hover:text-white"><i class="fas fa-edit"></i></button>
+                             <button data-id="${turma.id}" data-name="${turma.nome}" class="delete-turma-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addAlunoField(matricula = '', nome = '') {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `
+                <input type="text" value="${matricula}" placeholder="Matrícula" required class="aluno-matricula w-1/3 px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-sm">
+                <input type="text" value="${nome}" placeholder="Nome Completo" required class="aluno-nome flex-grow px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-sm">
+                <div class="flex">
+                    <button type="button" data-matricula="${matricula}" data-nome="${nome}" class="show-historico-btn text-blue-400 hover:text-blue-300 p-1 ${matricula ? '' : 'hidden'}"><i class="fas fa-history"></i></button>
+                    <button type="button" class="remove-aluno-btn text-red-500 hover:text-red-400 p-1"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            alunosListDiv.appendChild(div);
+        }
+        
+        addAlunoFieldBtn.addEventListener('click', () => addAlunoField());
+        
+        alunosListDiv.addEventListener('click', async (e) => {
+            const removeBtn = e.target.closest('.remove-aluno-btn');
+            const historicoBtn = e.target.closest('.show-historico-btn');
+
+            if (removeBtn) {
+                removeBtn.closest('.flex.items-center').remove();
+            }
+            if (historicoBtn) {
+                const matricula = historicoBtn.dataset.matricula;
+                const nome = historicoBtn.dataset.nome;
+                await fetchAndShowAlunoHistorico(matricula, nome);
+            }
+        });
+
+        addTurmaBtn.addEventListener('click', () => {
+            turmaForm.reset();
+            turmaIdInput.value = '';
+            turmaModalTitle.textContent = 'Adicionar Nova Turma';
+            alunosListDiv.innerHTML = '';
+            addAlunoField();
+            showModal('turma-modal');
+        });
+
+        turmaForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoader();
+            
+            const id = turmaIdInput.value;
+            const nome = turmaNomeInput.value.trim();
+            const alunos = [];
+            document.querySelectorAll('#alunos-list .flex.items-center').forEach(row => {
+                const matricula = row.querySelector('.aluno-matricula').value.trim();
+                const nomeAluno = row.querySelector('.aluno-nome').value.trim();
+                if (matricula && nomeAluno) {
+                    alunos.push({ matricula, nome: nomeAluno });
+                }
+            });
+            alunos.sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+            const turmaData = { nome, alunos };
+            const turmasRef = collection(db, `professores/${currentUser.uid}/turmas`);
+
+            try {
+                if (id) {
+                    await setDoc(doc(db, turmasRef.path, id), turmaData);
+                } else {
+                    await addDoc(turmasRef, turmaData);
+                }
+                hideAllModals();
+            } catch(error) {
+                console.error("Erro ao salvar turma:", error);
+                alert("Erro ao salvar a turma.");
+            } finally {
+                hideLoader();
+            }
+        });
+        
+        turmasListContainer.addEventListener('click', async (e) => {
+            const editBtn = e.target.closest('.edit-turma-btn');
+            const deleteBtn = e.target.closest('.delete-turma-btn');
+            
+            if (editBtn) {
+                const id = editBtn.dataset.id;
+                const turma = turmasCache.find(t => t.id === id);
+                if (turma) {
+                    turmaIdInput.value = turma.id;
+                    turmaNomeInput.value = turma.nome;
+                    turmaModalTitle.textContent = `Editar Turma: ${turma.nome}`;
+                    alunosListDiv.innerHTML = '';
+                    if (turma.alunos && turma.alunos.length > 0) {
+                        turma.alunos.forEach(aluno => addAlunoField(aluno.matricula, aluno.nome));
+                    } else {
+                         addAlunoField();
+                    }
+                    showModal('turma-modal');
+                }
+            }
+            
+            if (deleteBtn) {
+                const id = deleteBtn.dataset.id;
+                const name = deleteBtn.dataset.name;
+                showConfirmModal(`Tem certeza que deseja excluir a turma "${name}"? Esta ação não pode ser desfeita.`, async () => {
+                    showLoader();
+                    try {
+                        await deleteDoc(doc(db, `professores/${currentUser.uid}/turmas`, id));
+                    } catch (error) {
+                        console.error("Erro ao excluir turma:", error);
+                        alert("Erro ao excluir turma.");
+                    } finally {
+                        hideLoader();
+                    }
+                });
+            }
+        });
+        
+        // --- IMPORTAÇÃO DE ALUNOS ---
+        const importAlunosBtn = document.getElementById('import-alunos-btn');
+        const processImportBtn = document.getElementById('process-import-btn');
+        const importTextarea = document.getElementById('import-textarea');
+        
+        importAlunosBtn.addEventListener('click', () => {
+            importTextarea.value = '';
+            showModal('import-modal');
+        });
+        
+        processImportBtn.addEventListener('click', () => {
+            const text = importTextarea.value;
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            
+            const firstAlunoRow = alunosListDiv.querySelector('.flex.items-center');
+            if(firstAlunoRow && firstAlunoRow.querySelector('.aluno-matricula').value === '' && firstAlunoRow.querySelector('.aluno-nome').value === '') {
+                 firstAlunoRow.remove();
+            }
+
+            lines.forEach(line => {
+                if (line.includes("Evadido / Desistente")) return;
+                const parts = line.split(/\s+/);
+                if (parts.length < 3) return;
+                
+                const idCompleto = parts[1];
+                const matricula = idCompleto.substring(idCompleto.length - 7);
+                const aiIndex = parts.indexOf('AI');
+                if (aiIndex === -1 || aiIndex < 2) return;
+
+                const nome = parts.slice(2, aiIndex).join(' ');
+
+                if (matricula && nome) {
+                    addAlunoField(matricula, nome);
+                }
+            });
+            hideAllModals();
+            showModal('turma-modal'); // Re-exibe o modal de turma
+        });
+
+        // --- CONTROLE DE AULA ---
+        const aulaSetupDiv = document.getElementById('aula-setup');
+        const aulaLiveDiv = document.getElementById('aula-live');
+        const aulaTurmaSelect = document.getElementById('aula-turma-select');
+        const iniciarAulaBtn = document.getElementById('iniciar-aula-btn');
+        const liveTurmaNomeSpan = document.getElementById('live-turma-nome');
+        const encerrarAulaBtn = document.getElementById('encerrar-aula-btn');
+        const resumoAulaContent = document.getElementById('resumo-aula-content');
+        const salvarResumoBtn = document.getElementById('salvar-resumo-btn');
+        const downloadResumoPdfBtn = document.getElementById('download-resumo-pdf-btn');
+
+        const presentesList = document.getElementById('presentes-list');
+        const ausentesList = document.getElementById('ausentes-list');
+        const foraSalaList = document.getElementById('fora-sala-list');
+        
+        const presentesCount = document.getElementById('presentes-count');
+        const ausentesCount = document.getElementById('ausentes-count');
+        const foraSalaCount = document.getElementById('fora-sala-count');
+        
+        let liveAulaState = {};
+
+        function renderControleDeAula() {
+            aulaTurmaSelect.innerHTML = '<option value="">Selecione uma turma para começar</option>';
+            turmasCache.sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')).forEach(turma => {
+                const option = document.createElement('option');
+                option.value = turma.id;
+                option.textContent = turma.nome;
+                aulaTurmaSelect.appendChild(option);
+            });
+            
+            aulaSetupDiv.classList.remove('hidden');
+            aulaLiveDiv.classList.add('hidden');
+            resetLiveAula();
+        }
+        
+        aulaTurmaSelect.addEventListener('change', () => {
+            iniciarAulaBtn.disabled = !aulaTurmaSelect.value;
+        });
+        
+        iniciarAulaBtn.addEventListener('click', () => {
+            const turmaId = aulaTurmaSelect.value;
+            const turma = turmasCache.find(t => t.id === turmaId);
+            if (!turma || !turma.alunos) return;
+
+            liveAulaState = {
+                turmaId: turma.id,
+                turmaNome: turma.nome,
+                presentes: [...turma.alunos].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+                ausentes: [],
+                foraDaSala: [],
+                historicoSaidas: []
+            };
+            
+            aulaSetupDiv.classList.add('hidden');
+            aulaLiveDiv.classList.remove('hidden');
+            liveTurmaNomeSpan.textContent = turma.nome;
+            
+            renderLiveAulaLists();
+        });
+        
+        function renderLiveAulaLists() {
+            presentesList.innerHTML = liveAulaState.presentes.map(aluno => createAlunoCard(aluno, 'presente')).join('');
+            ausentesList.innerHTML = liveAulaState.ausentes.map(aluno => createAlunoCard(aluno, 'ausente')).join('');
+            foraSalaList.innerHTML = liveAulaState.foraDaSala.map(aluno => createAlunoCard(aluno, 'fora')).join('');
+            updateLiveAulaCounts();
+        }
+
+        function createAlunoCard(aluno, status) {
+            let actions = '';
+            let timerHtml = '';
+
+            switch(status) {
+                case 'presente':
+                    actions = `
+                        <button data-matricula="${aluno.matricula}" class="move-ausente-btn text-red-400 hover:text-red-300 p-1" title="Marcar Ausente"><i class="fas fa-user-times"></i></button>
+                        <button data-matricula="${aluno.matricula}" class="move-fora-btn text-yellow-400 hover:text-yellow-300 p-1" title="Registrar Saída"><i class="fas fa-person-running"></i></button>
+                    `;
+                    break;
+                case 'ausente':
+                     actions = `
+                        <button data-matricula="${aluno.matricula}" class="move-presente-btn text-green-400 hover:text-green-300 p-1" title="Marcar Presente"><i class="fas fa-user-check"></i></button>
+                    `;
+                    break;
+                case 'fora':
+                    const timerId = `timer-${aluno.matricula}`;
+                    timerHtml = `<div id="${timerId}" class="text-sm font-mono bg-green-900/50 text-green-400 px-2 py-0.5 rounded">00:00</div>`;
+                    startTimer(aluno.matricula, timerId);
+                    actions = `
+                        <button data-matricula="${aluno.matricula}" class="move-retorno-btn text-blue-400 hover:text-blue-300 p-1" title="Registrar Retorno"><i class="fas fa-undo-alt"></i></button>
+                    `;
+                    break;
+            }
+
+            return `
+                <div class="bg-gray-700/50 p-3 rounded-md flex justify-between items-center text-sm">
+                    <span class="truncate pr-2">${aluno.nome}</span>
+                    <div class="flex items-center gap-3">
+                        ${timerHtml}
+                        ${actions}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function startTimer(matricula, timerId) {
+            const alunoSaida = liveAulaState.foraDaSala.find(a => a.matricula === matricula);
+            if (!alunoSaida) return;
+
+            const interval = setInterval(() => {
+                const element = document.getElementById(timerId);
+                if (!element) {
+                    clearInterval(interval);
+                    return;
+                }
+                const elapsed = Math.floor((Date.now() - alunoSaida.startTime) / 1000);
+                const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const seconds = String(elapsed % 60).padStart(2, '0');
+                element.textContent = `${minutes}:${seconds}`;
+
+                element.className = 'text-sm font-mono px-2 py-0.5 rounded ';
+                if (elapsed >= 600) { // 10+ min
+                    element.classList.add('bg-red-900/50', 'text-red-400');
+                } else if (elapsed >= 300) { // 5-10 min
+                    element.classList.add('bg-yellow-900/50', 'text-yellow-400');
+                } else { // < 5 min
+                    element.classList.add('bg-green-900/50', 'text-green-400');
+                }
+            }, 1000);
+            liveAulaIntervals.push(interval);
+        }
+
+        // --- [CORREÇÃO APLICADA AQUI] ---
+        function updateLiveAulaCounts() {
+            presentesCount.textContent = liveAulaState.presentes?.length || 0;
+            ausentesCount.textContent = liveAulaState.ausentes?.length || 0;
+            foraSalaCount.textContent = liveAulaState.foraDaSala?.length || 0;
+        }
+        
+        function resetLiveAula() {
+            liveAulaState = {};
+            liveAulaIntervals.forEach(clearInterval);
+            liveAulaIntervals = [];
+            presentesList.innerHTML = '';
+            ausentesList.innerHTML = '';
+            foraSalaList.innerHTML = '';
+            updateLiveAulaCounts();
+        }
+
+        function moveAluno(matricula, fromList, toList) {
+            const alunoIndex = liveAulaState[fromList].findIndex(a => a.matricula === matricula);
+            if (alunoIndex > -1) {
+                const [aluno] = liveAulaState[fromList].splice(alunoIndex, 1);
+                liveAulaState[toList].push(aluno);
+                liveAulaState[toList].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+                
+                if(toList === 'foraDaSala') {
+                    aluno.startTime = Date.now();
+                } else if (fromList === 'foraDaSala') {
+                    stopTimerAndRecord(aluno);
+                }
+                
+                renderLiveAulaLists();
+            }
+        }
+        
+        function stopTimerAndRecord(aluno, forcedObservacao = null) {
+            const saidaRecord = {
+                alunoMatricula: aluno.matricula,
+                alunoNome: aluno.nome,
+                tempoFora: Math.floor((Date.now() - aluno.startTime) / 1000),
+                observacao: forcedObservacao !== null ? forcedObservacao : (aluno.observacao || '')
+            };
+            liveAulaState.historicoSaidas.push(saidaRecord);
+            delete aluno.startTime;
+            delete aluno.observacao;
+        }
+
+        document.getElementById('aula-live').addEventListener('click', (e) => {
+             const btn = e.target.closest('button');
+             if(!btn) return;
+
+             const matricula = btn.dataset.matricula;
+             if(btn.classList.contains('move-ausente-btn')) moveAluno(matricula, 'presentes', 'ausentes');
+             if(btn.classList.contains('move-presente-btn')) moveAluno(matricula, 'ausentes', 'presentes');
+             if(btn.classList.contains('move-retorno-btn')) moveAluno(matricula, 'foraDaSala', 'presentes');
+             
+             if(btn.classList.contains('move-fora-btn')) {
+                 const aluno = liveAulaState.presentes.find(a => a.matricula === matricula);
+                 document.getElementById('saida-aluno-nome').textContent = aluno.nome;
+                 document.getElementById('saida-aluno-matricula').value = matricula;
+                 document.getElementById('saida-observacao').value = '';
+                 showModal('saida-aluno-modal');
+             }
+        });
+        
+        document.getElementById('confirm-saida-btn').addEventListener('click', () => {
+            const matricula = document.getElementById('saida-aluno-matricula').value;
+            const alunoIndex = liveAulaState.presentes.findIndex(a => a.matricula === matricula);
+            if(alunoIndex > -1) {
+                const [aluno] = liveAulaState.presentes.splice(alunoIndex, 1);
+                aluno.startTime = Date.now();
+                aluno.observacao = document.getElementById('saida-observacao').value;
+                liveAulaState.foraDaSala.push(aluno);
+                liveAulaState.foraDaSala.sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+                renderLiveAulaLists();
+            }
+            hideAllModals();
+        });
+        
+        encerrarAulaBtn.addEventListener('click', () => {
+            liveAulaState.foraDaSala.forEach(aluno => {
+                stopTimerAndRecord(aluno, '(Não retornou até o final da aula)');
+            });
+            liveAulaState.foraDaSala = [];
+
+            aulaDataForPDF = {
+                turmaNome: liveAulaState.turmaNome,
+                ausentes: liveAulaState.ausentes,
+                saidas: liveAulaState.historicoSaidas,
+            };
+
+            let resumoHTML = '';
+            if(liveAulaState.ausentes.length > 0) {
+                resumoHTML += '<h4 class="text-lg font-semibold text-red-400 mb-2">Alunos Ausentes</h4><ul class="list-disc list-inside mb-6 text-gray-300">';
+                liveAulaState.ausentes.forEach(aluno => {
+                    resumoHTML += `<li>${aluno.nome}</li>`;
+                });
+                resumoHTML += '</ul>';
+            }
+
+            if(liveAulaState.historicoSaidas.length > 0) {
+                 resumoHTML += '<h4 class="text-lg font-semibold text-yellow-400 mb-2">Registro de Saídas</h4><div class="space-y-2">';
+                 liveAulaState.historicoSaidas.forEach(saida => {
+                     const tempo = `${Math.floor(saida.tempoFora / 60)}m ${saida.tempoFora % 60}s`;
+                     resumoHTML += `<div class="bg-gray-700/50 p-3 rounded-md">
+                         <p class="font-semibold text-gray-200">${saida.alunoNome} - <span class="font-mono text-orange-400">${tempo}</span></p>
+                         ${saida.observacao ? `<p class="text-sm text-gray-400 mt-1">Obs: ${saida.observacao}</p>` : ''}
+                     </div>`;
+                 });
+                 resumoHTML += '</div>';
+            }
+
+            if(resumoHTML === '') {
+                resumoHTML = '<p class="text-center text-gray-300">Nenhum aluno ausente e nenhuma saída registrada.</p>';
+            }
+
+            resumoAulaContent.innerHTML = resumoHTML;
+            salvarResumoBtn.disabled = false;
+            downloadResumoPdfBtn.disabled = true;
+            showModal('resumo-aula-modal');
+        });
+
+        salvarResumoBtn.addEventListener('click', async () => {
+            showLoader();
+            const historicoData = {
+                turmaId: liveAulaState.turmaId,
+                turmaNome: liveAulaState.turmaNome,
+                createdAt: serverTimestamp(),
+                ausentes: liveAulaState.ausentes.map(a => ({ matricula: a.matricula, nome: a.nome })),
+                saidas: liveAulaState.historicoSaidas,
+            };
+            
+            try {
+                await addDoc(collection(db, `professores/${currentUser.uid}/historicoAulas`), historicoData);
+                salvarResumoBtn.disabled = true;
+                downloadResumoPdfBtn.disabled = false;
+                
+                aulaSetupDiv.classList.remove('hidden');
+                aulaLiveDiv.classList.add('hidden');
+                resetLiveAula();
+
+            } catch (error) {
+                console.error("Erro ao salvar histórico:", error);
+                alert("Ocorreu um erro ao salvar o histórico.");
+            } finally {
+                hideLoader();
+            }
+        });
+
+        downloadResumoPdfBtn.addEventListener('click', () => {
+            if (aulaDataForPDF) {
+                generatePresencaPDF(aulaDataForPDF);
+            }
+        });
+        
+        function generatePresencaPDF(aulaData) {
+            try {
+                const { jsPDF } = window.jspdf;
+                const autoTable = window.jspdf.jsPDF.autoTable;
+                const doc = new jsPDF();
+                const date = new Date().toLocaleString('pt-BR');
+
+                doc.setFontSize(18);
+                doc.text(`Relatório de Aula - ${aulaData.turmaNome}`, 14, 22);
+                doc.setFontSize(11);
+                doc.setTextColor(100);
+                doc.text(`Data da Aula: ${date}`, 14, 30);
+                
+                let finalY = 40;
+
+                if (aulaData.ausentes && aulaData.ausentes.length > 0) {
+                    autoTable(doc, {
+                        startY: finalY,
+                        head: [['Alunos Ausentes']],
+                        body: aulaData.ausentes.map(a => [a.nome]),
+                        theme: 'grid',
+                        headStyles: { fillColor: [220, 38, 38] } // Vermelho
+                    });
+                    finalY = doc.lastAutoTable.finalY + 10;
+                }
+
+                if (aulaData.saidas && aulaData.saidas.length > 0) {
+                    const tableDataSaidas = aulaData.saidas.map(saida => {
+                        const tempo = `${Math.floor(saida.tempoFora / 60)}m ${saida.tempoFora % 60}s`;
+                        return [saida.alunoNome, tempo, saida.observacao];
+                    });
+                    autoTable(doc, {
+                        startY: finalY,
+                        head: [['Aluno', 'Tempo Fora da Sala', 'Observação']],
+                        body: tableDataSaidas,
+                        theme: 'grid',
+                        headStyles: { fillColor: [234, 88, 12] } // Laranja
+                    });
+                }
+
+                doc.save(`relatorio_aula_${aulaData.turmaNome}_${new Date().toISOString().split('T')[0]}.pdf`);
+            } catch (e) {
+                console.error("Erro na Geração de PDF:", e);
+                alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
+            }
+        }
+
+        // --- LANÇAR NOTAS ---
+        const notasTurmaSelect = document.getElementById('notas-turma-select');
+        const notasAvaliacaoSelect = document.getElementById('notas-avaliacao-select');
+        const novaAvaliacaoBtn = document.getElementById('nova-avaliacao-btn');
+        const excluirAvaliacaoBtn = document.getElementById('excluir-avaliacao-btn');
+        const notasTableContainer = document.getElementById('notas-table-container');
+        const notasTableTitle = document.getElementById('notas-table-title');
+        const notasTbody = document.getElementById('notas-tbody');
+        const salvarNotasBtn = document.getElementById('salvar-notas-btn');
+        const gerarRelatorioNotasBtn = document.getElementById('gerar-relatorio-notas-btn');
+
+        function renderNotas() {
+            notasTurmaSelect.innerHTML = '<option value="">1. Selecione uma turma</option>';
+            turmasCache.sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')).forEach(turma => {
+                const option = document.createElement('option');
+                option.value = turma.id;
+                option.textContent = turma.nome;
+                notasTurmaSelect.appendChild(option);
+            });
+            notasAvaliacaoSelect.innerHTML = '<option value="">2. Selecione uma avaliação</option>';
+            notasAvaliacaoSelect.disabled = true;
+            novaAvaliacaoBtn.disabled = true;
+            excluirAvaliacaoBtn.classList.add('hidden');
+            notasTableContainer.classList.add('hidden');
+        }
+
+        async function loadAvaliacoes(turmaId) {
+            const avaliacoesRef = collection(db, `professores/${currentUser.uid}/turmas/${turmaId}/avaliacoes`);
+            const avaliacoesSnapshot = await getDocs(avaliacoesRef);
+            
+            notasAvaliacaoSelect.innerHTML = '<option value="">2. Selecione uma avaliação</option>';
+            const avaliacoes = avaliacoesSnapshot.docs.map(d => ({id: d.id, ...d.data()}));
+            avaliacoes.sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')).forEach(aval => {
+                const option = document.createElement('option');
+                option.value = aval.id;
+                option.textContent = aval.nome;
+                notasAvaliacaoSelect.appendChild(option);
+            });
+        }
+
+        notasTurmaSelect.addEventListener('change', async () => {
+            const turmaId = notasTurmaSelect.value;
+            notasAvaliacaoSelect.innerHTML = '<option value="">Carregando...</option>';
+            notasTableContainer.classList.add('hidden');
+            excluirAvaliacaoBtn.classList.add('hidden');
+
+            if (!turmaId) {
+                notasAvaliacaoSelect.innerHTML = '<option value="">2. Selecione uma avaliação</option>';
+                notasAvaliacaoSelect.disabled = true;
+                novaAvaliacaoBtn.disabled = true;
+                return;
+            }
+
+            novaAvaliacaoBtn.disabled = false;
+            notasAvaliacaoSelect.disabled = false;
+            await loadAvaliacoes(turmaId);
+        });
+
+        novaAvaliacaoBtn.addEventListener('click', () => {
+            const turmaId = notasTurmaSelect.value;
+            if(!turmaId) return;
+
+            showPromptModal(
+                'Nova Avaliação', 
+                'Digite o nome da nova avaliação (ex: Prova 1):',
+                async (nomeAvaliacao) => {
+                    showLoader();
+                    try {
+                        const avaliacoesRef = collection(db, `professores/${currentUser.uid}/turmas/${turmaId}/avaliacoes`);
+                        const newDoc = await addDoc(avaliacoesRef, { nome: nomeAvaliacao });
+                        await loadAvaliacoes(turmaId);
+                        notasAvaliacaoSelect.value = newDoc.id;
+                        notasAvaliacaoSelect.dispatchEvent(new Event('change'));
+
+                    } catch (error) {
+                        console.error("Erro ao criar avaliação:", error);
+                        alert("Erro ao criar avaliação.");
+                    } finally {
+                        hideLoader();
+                    }
+                }
+            );
+        });
+        
+        excluirAvaliacaoBtn.addEventListener('click', () => {
+            const turmaId = notasTurmaSelect.value;
+            const avaliacaoId = notasAvaliacaoSelect.value;
+            const avaliacaoNome = notasAvaliacaoSelect.options[notasAvaliacaoSelect.selectedIndex].text;
+            if(!turmaId || !avaliacaoId) return;
+
+            showConfirmModal(`Tem certeza que deseja excluir a avaliação "${avaliacaoNome}"? Todas as notas associadas serão perdidas.`, async () => {
+                showLoader();
+                try {
+                    const avaliacaoRef = doc(db, `professores/${currentUser.uid}/turmas/${turmaId}/avaliacoes`, avaliacaoId);
+                    await deleteDoc(avaliacaoRef);
+                    notasTableContainer.classList.add('hidden');
+                    excluirAvaliacaoBtn.classList.add('hidden');
+                    await loadAvaliacoes(turmaId);
+                } catch(error) {
+                    console.error("Erro ao excluir avaliação:", error);
+                    alert("Erro ao excluir avaliação.");
+                } finally {
+                    hideLoader();
+                }
+            });
+        });
+
+        notasAvaliacaoSelect.addEventListener('change', async () => {
+            const turmaId = notasTurmaSelect.value;
+            const avaliacaoId = notasAvaliacaoSelect.value;
+
+            if (!avaliacaoId) {
+                notasTableContainer.classList.add('hidden');
+                excluirAvaliacaoBtn.classList.add('hidden');
+                return;
+            }
+            showLoader();
+            excluirAvaliacaoBtn.classList.remove('hidden');
+            
+            try {
+                const turma = turmasCache.find(t => t.id === turmaId);
+                const avaliacaoNome = notasAvaliacaoSelect.options[notasAvaliacaoSelect.selectedIndex].text;
+                
+                const notasRef = doc(db, `professores/${currentUser.uid}/turmas/${turmaId}/avaliacoes`, avaliacaoId);
+                const notasDoc = await getDoc(notasRef);
+                const notasData = notasDoc.exists() ? notasDoc.data().notas || {} : {};
+                
+                notasTableTitle.textContent = `Lançando notas para: ${turma.nome} - ${avaliacaoNome}`;
+                notasTbody.innerHTML = turma.alunos.map(aluno => `
+                    <tr class="border-b border-gray-700">
+                        <td class="p-3 text-sm text-gray-400">${aluno.matricula}</td>
+                        <td class="p-3 text-sm">${aluno.nome}</td>
+                        <td class="p-3">
+                            <input type="number" step="0.1" min="0" max="10" 
+                                   data-matricula="${aluno.matricula}"
+                                   value="${notasData[aluno.matricula] !== undefined ? notasData[aluno.matricula] : ''}"
+                                   class="nota-input w-24 px-2 py-1 bg-gray-900 border border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500">
+                        </td>
+                    </tr>
+                `).join('');
+
+                notasTableContainer.classList.remove('hidden');
+
+            } catch(error) {
+                console.error("Erro ao carregar tabela de notas:", error);
+                alert("Erro ao carregar a tabela de notas.");
+            } finally {
+                hideLoader();
+            }
+        });
+
+        salvarNotasBtn.addEventListener('click', async () => {
+            const turmaId = notasTurmaSelect.value;
+            const avaliacaoId = notasAvaliacaoSelect.value;
+            if(!turmaId || !avaliacaoId) return;
+
+            showLoader();
+            const notas = {};
+            document.querySelectorAll('.nota-input').forEach(input => {
+                const matricula = input.dataset.matricula;
+                const nota = input.value;
+                if (nota !== '') {
+                    notas[matricula] = parseFloat(nota);
+                }
+            });
+            
+            try {
+                const notasRef = doc(db, `professores/${currentUser.uid}/turmas/${turmaId}/avaliacoes`, avaliacaoId);
+                await setDoc(notasRef, { notas }, { merge: true });
+                alert('Notas salvas com sucesso!');
+            } catch (error) {
+                console.error("Erro ao salvar notas:", error);
+                alert("Erro ao salvar as notas.");
+            } finally {
+                hideLoader();
+            }
+        });
+
+        gerarRelatorioNotasBtn.addEventListener('click', () => {
+            const turmaNome = notasTurmaSelect.options[notasTurmaSelect.selectedIndex].text;
+            const avaliacaoNome = notasAvaliacaoSelect.options[notasAvaliacaoSelect.selectedIndex].text;
+            const tableRows = notasTbody.querySelectorAll('tr');
+
+            let totalNota = 0;
+            let countNota = 0;
+            const tableData = [];
+
+            tableRows.forEach(row => {
+                const matricula = row.cells[0].textContent;
+                const nome = row.cells[1].textContent;
+                const notaInput = row.querySelector('.nota-input');
+                const nota = notaInput.value;
+                
+                tableData.push([matricula, nome, nota || 'N/L']);
+
+                if (nota !== '') {
+                    totalNota += parseFloat(nota);
+                    countNota++;
+                }
+            });
+
+            const media = countNota > 0 ? (totalNota / countNota).toFixed(2) : 'N/A';
+            try {
+                const { jsPDF } = window.jspdf;
+                const autoTable = window.jspdf.jsPDF.autoTable;
+                const doc = new jsPDF();
+
+                doc.setFontSize(18);
+                doc.text(`Relatório de Notas`, 14, 22);
+                doc.setFontSize(11);
+                doc.setTextColor(100);
+                doc.text(`Turma: ${turmaNome}`, 14, 30);
+                doc.text(`Avaliação: ${avaliacaoNome}`, 14, 36);
+                doc.text(`Média da Turma: ${media}`, 14, 42);
+
+                autoTable(doc, {
+                    startY: 50,
+                    head: [['Matrícula', 'Aluno', 'Nota']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [234, 88, 12] }
+                });
+
+                doc.save(`relatorio_notas_${turmaNome}_${avaliacaoNome.replace(/\s+/g, '_')}.pdf`);
+            } catch (e) {
+                console.error("Erro na Geração de PDF de notas:", e);
+                alert("Ocorreu um erro ao gerar o PDF de notas. Verifique o console.");
+            }
+        });
+
+        // --- HISTÓRICO DO ALUNO ---
+        const alunoHistoricoTitle = document.getElementById('aluno-historico-title');
+        const alunoHistoricoContent = document.getElementById('aluno-historico-content');
+
+        async function fetchAndShowAlunoHistorico(matricula, nome) {
+            showLoader();
+            alunoHistoricoTitle.textContent = `Histórico de: ${nome}`;
+            alunoHistoricoContent.innerHTML = '';
+            showModal('aluno-historico-modal');
+
+            // 1. Obter histórico de presença do cache
+            const attendanceHistory = [];
+            historicoCache.forEach(aula => {
+                aula.ausentes?.forEach(ausente => {
+                    if(ausente.matricula === matricula) {
+                        attendanceHistory.push({
+                            type: 'Falta',
+                            date: aula.createdAt.toDate(),
+                            turma: aula.turmaNome,
+                            details: 'Aluno marcado como ausente'
+                        });
+                    }
+                });
+                aula.saidas?.forEach(saida => {
+                    if(saida.alunoMatricula === matricula) {
+                          const tempo = `${Math.floor(saida.tempoFora / 60)}m ${saida.tempoFora % 60}s`;
+                          attendanceHistory.push({
+                            type: 'Saída',
+                            date: aula.createdAt.toDate(),
+                            turma: aula.turmaNome,
+                            details: `Tempo fora: ${tempo}. Obs: ${saida.observacao || 'N/A'}`
+                        });
+                    }
+                });
+            });
+            attendanceHistory.sort((a,b) => b.date - a.date);
+            
+            // 2. Obter notas do Firestore
+            const gradeHistory = [];
+            for (const turma of turmasCache) {
+                const avaliacoesRef = collection(db, `professores/${currentUser.uid}/turmas/${turma.id}/avaliacoes`);
+                const avaliacoesSnapshot = await getDocs(avaliacoesRef);
+                avaliacoesSnapshot.forEach(doc => {
+                    const avaliacao = doc.data();
+                    if(avaliacao.notas && avaliacao.notas[matricula] !== undefined) {
+                        gradeHistory.push({
+                            turma: turma.nome,
+                            avaliacao: avaliacao.nome,
+                            nota: avaliacao.notas[matricula]
+                        });
+                    }
+                });
+            }
+            gradeHistory.sort((a,b) => a.turma.localeCompare(b.turma) || a.avaliacao.localeCompare(b.avaliacao));
+
+            // 3. Renderizar
+            renderAlunoHistoricoModal(attendanceHistory, gradeHistory);
+            hideLoader();
+        }
+
+        function renderAlunoHistoricoModal(attendance, grades) {
+             let html = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">`;
+             
+             // Coluna de Presença
+             html += '<div><h4 class="text-xl font-semibold text-orange-400 mb-4">Faltas e Saídas</h4>';
+             if (attendance.length > 0) {
+                 html += '<div class="space-y-3">';
+                 attendance.forEach(item => {
+                     const isFalta = item.type === 'Falta';
+                     html += `<div class="bg-gray-700/50 p-3 rounded-md">
+                         <p class="font-semibold ${isFalta ? 'text-red-400' : 'text-yellow-400'}">${item.type} em ${item.date.toLocaleDateString('pt-BR')}</p>
+                         <p class="text-sm text-gray-300">Turma: ${item.turma}</p>
+                         <p class="text-sm text-gray-400">${item.details}</p>
+                     </div>`;
+                 });
+                 html += '</div>';
+             } else {
+                 html += '<p class="text-gray-400">Nenhum registro de faltas ou saídas.</p>';
+             }
+             html += '</div>';
+
+             // Coluna de Notas
+             html += '<div><h4 class="text-xl font-semibold text-orange-400 mb-4">Notas Lançadas</h4>';
+             if (grades.length > 0) {
+                 html += `<div class="overflow-x-auto"><table class="min-w-full text-sm">
+                              <thead class="bg-gray-700/50">
+                                  <tr>
+                                      <th class="p-2 text-left">Turma</th>
+                                      <th class="p-2 text-left">Avaliação</th>
+                                      <th class="p-2 text-right">Nota</th>
+                                  </tr>
+                              </thead>
+                              <tbody>`;
+                 grades.forEach(grade => {
+                     html += `<tr class="border-b border-gray-700">
+                                  <td class="p-2">${grade.turma}</td>
+                                  <td class="p-2">${grade.avaliacao}</td>
+                                  <td class="p-2 text-right font-semibold">${grade.nota}</td>
+                               </tr>`;
+                 });
+                 html += `</tbody></table></div>`;
+             } else {
+                  html += '<p class="text-gray-400">Nenhuma nota lançada para este aluno.</p>';
+             }
+             html += '</div>';
+
+             html += `</div>`;
+             alunoHistoricoContent.innerHTML = html;
+        }
+
+    </script>
+
+</body>
+</html>
