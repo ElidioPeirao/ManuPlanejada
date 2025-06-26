@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW-Eval Pro - Sistema de Avaliação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif;
+        }
+        .view { display: none; }
+        #loginView { display: block; }
+        .criterion-card { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .loader {
+            border: 4px solid #4a5568; /* dark gray */
+            border-top: 4px solid #ea580c; /* orange */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Estilos para abas */
+        .tab-button.active {
+            border-bottom-color: #ea580c;
+            color: #ea580c;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: grid;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <div id="app" class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <!-- Notificação -->
+        <div id="notification" class="hidden fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg z-50 transition-transform translate-x-full">
+            <p id="notification-message"></p>
+        </div>
+
+        <!-- Modal de Confirmação -->
+        <div id="confirmationModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-sm text-center">
+                <h3 id="modalTitle" class="text-xl font-bold mb-4">Confirmar Ação</h3>
+                <p id="modalMessage" class="text-gray-300 mb-6">Você tem certeza?</p>
+                <div class="flex justify-center gap-4">
+                    <button id="modalCancel" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg">Cancelar</button>
+                    <button id="modalConfirm" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Confirmar</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- View de Login -->
+        <div id="loginView" class="view">
+            <div class="bg-gray-800 max-w-md mx-auto p-8 rounded-xl shadow-lg text-center mt-10">
+                <img src="https://i.imgur.com/EDw5HWL.png" alt="Logo" class="mx-auto h-24 w-auto mb-6">
+                <p class="text-gray-400 mb-8">Login no Sistema de Avaliação</p>
+                <div class="text-left">
+                    <div class="mb-4">
+                        <label for="loginEmail" class="block text-sm font-medium text-gray-300 mb-2">Email:</label>
+                        <input type="email" id="loginEmail" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="seu.email@exemplo.com">
+                    </div>
+                    <div class="mb-6">
+                        <label for="loginPassword" class="block text-sm font-medium text-gray-300 mb-2">Senha:</label>
+                        <input type="password" id="loginPassword" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="••••••••">
+                    </div>
+                    <button id="loginButton" class="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-700 transition">Entrar</button>
+                    <p class="text-center text-sm text-gray-400 mt-4">
+                        Não tem uma conta? <a href="#" id="showRegisterLink" class="font-medium text-orange-500 hover:underline">Cadastre-se</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- View de Cadastro -->
+        <div id="registerView" class="view">
+             <div class="bg-gray-800 max-w-lg mx-auto p-8 rounded-xl shadow-lg text-center mt-10">
+                <img src="https://i.imgur.com/EDw5HWL.png" alt="Logo" class="mx-auto h-24 w-auto mb-6">
+                <p class="text-gray-400 mb-8">Crie sua conta de aluno para começar.</p>
+                <div class="text-left">
+                    <div class="mb-4">
+                        <label for="registerName" class="block text-sm font-medium text-gray-300 mb-2">Nome Completo:</label>
+                        <input type="text" id="registerName" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                     <div class="mb-4">
+                        <label for="registerEmail" class="block text-sm font-medium text-gray-300 mb-2">Email:</label>
+                        <input type="email" id="registerEmail" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div class="mb-4">
+                        <label for="registerPassword" class="block text-sm font-medium text-gray-300 mb-2">Senha (mínimo 6 caracteres):</label>
+                        <input type="password" id="registerPassword" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div id="turmaCodeContainer" class="mb-6">
+                        <label for="turmaCode" class="block text-sm font-medium text-gray-300 mb-2">Código da Turma:</label>
+                        <input type="text" id="turmaCode" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="Peça ao seu professor">
+                    </div>
+                    <button id="registerButton" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition">Criar Conta</button>
+                     <p class="text-center text-sm text-gray-400 mt-4">
+                        Já tem uma conta? <a href="#" id="showLoginLink" class="font-medium text-orange-500 hover:underline">Faça Login</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header id="appHeader" class="hidden items-center justify-between bg-gray-800 p-4 rounded-xl shadow-lg mb-8">
+             <div class="flex items-center">
+                <img src="https://i.imgur.com/EDw5HWL.png" alt="Logo" class="h-12 w-auto mr-6">
+                <p id="welcomeMessage" class="text-gray-300"></p>
+             </div>
+             <div>
+                <button id="manageTurmasBtn" class="hidden bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-cyan-700 transition mr-4"><i class="fas fa-users mr-2"></i>Gerenciar Turmas</button>
+                <button id="dashboardBtn" class="bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-500 transition mr-4"><i class="fas fa-th-large mr-2"></i>Dashboard</button>
+                <button id="logoutButton" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition"><i class="fas fa-sign-out-alt mr-2"></i>Sair</button>
+             </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="mainContent">
+            <!-- Loader -->
+            <div id="loader" class="view loader"></div>
+            
+            <!-- Views do Professor -->
+            <div id="professorDashboardView" class="view">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Dashboard do Professor</h2>
+                    <button id="showCreateAssessmentView" class="bg-green-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-green-700 transition"><i class="fas fa-plus-circle mr-2"></i>Criar Nova Avaliação</button>
+                </div>
+                <div id="assessmentList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+            
+            <div id="professorTurmasView" class="view">
+                <div class="flex items-center gap-4 mb-6">
+                     <button id="backToProfessorDashboardFromTurmas" class="bg-gray-700 p-2 rounded-full hover:bg-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                     <h2 class="text-2xl font-bold">Gerenciar Turmas</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                         <h3 class="font-bold text-lg mb-4">Criar Nova Turma</h3>
+                         <input type="text" id="newTurmaName" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white mb-4" placeholder="Nome da Turma (Ex: Módulo 1 - Manhã)">
+                         <button id="createTurmaBtn" class="w-full bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700">Criar Turma</button>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="font-bold text-lg mb-4">Minhas Turmas</h3>
+                        <div id="turmasList" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="studentListView" class="view">
+                 <div class="flex items-center gap-4 mb-6">
+                     <button id="backToTurmasView" class="bg-gray-700 p-2 rounded-full hover:bg-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                     <h2 id="studentListTitle" class="text-2xl font-bold">Alunos na Turma</h2>
+                </div>
+                <div id="studentListContent" class="bg-gray-800 p-6 rounded-xl shadow-lg"></div>
+            </div>
+
+            <div id="createAssessmentView" class="view">
+                 <h2 class="text-2xl font-bold mb-6">Criar Nova Avaliação</h2>
+                 <div class="bg-gray-800 p-8 rounded-xl shadow-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">Título da Avaliação</label>
+                            <input type="text" id="assessmentTitle" class="w-full mt-1 px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white">
+                        </div>
+                         <div>
+                            <label for="assessmentTurma" class="block text-sm font-medium text-gray-300">Atribuir para a Turma:</label>
+                            <select id="assessmentTurma" class="w-full mt-1 px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">URL da Imagem da Peça</label>
+                            <input type="text" id="imageUrl" class="w-full mt-1 px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">URL do PDF do Desenho</label>
+                            <input type="text" id="pdfUrl" class="w-full mt-1 px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white">
+                        </div>
+                         <div class="col-span-1">
+                            <label for="assessmentAttempts" class="block text-sm font-medium text-gray-300">Nº de Tentativas</label>
+                            <input type="number" id="assessmentAttempts" value="1" min="1" class="w-full mt-1 px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white">
+                        </div>
+                         <div class="col-span-1">
+                            <label for="assessmentDeadline" class="block text-sm font-medium text-gray-300">Data Limite para Resposta</label>
+                            <input type="datetime-local" id="assessmentDeadline" class="w-full mt-1 px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white">
+                        </div>
+                    </div>
+                    <h3 class="font-bold text-lg mb-4 border-t border-gray-700 pt-4">Critérios de Avaliação</h3>
+                    <div id="criteriaContainer" class="space-y-4 mb-6"></div>
+                    <button id="addCriterionBtn" class="bg-gray-600 text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-500"><i class="fas fa-plus mr-2"></i>Adicionar Critério</button>
+                    <div class="mt-8 flex justify-end gap-4">
+                        <button id="cancelCreate" class="bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600">Cancelar</button>
+                        <button id="saveAssessment" class="bg-orange-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-orange-700">Salvar Avaliação</button>
+                    </div>
+                 </div>
+            </div>
+            
+            <div id="resultsView" class="view">
+                <div class="flex items-center gap-4 mb-6">
+                    <button id="backToProfessorDashboard" class="bg-gray-700 p-2 rounded-full hover:bg-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                    <h2 id="resultsTitle" class="text-2xl font-bold">Resultados da Avaliação</h2>
+                </div>
+                <div id="resultsContent" class="bg-gray-800 p-6 rounded-xl shadow-lg"></div>
+            </div>
+
+            <!-- Views do Aluno -->
+            <div id="alunoDashboardView" class="view">
+                <h2 class="text-2xl font-bold mb-6">Minhas Avaliações</h2>
+                <div class="border-b border-gray-700 mb-4">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button data-tab="abertas" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Abertas</button>
+                        <button data-tab="respondidas" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-400 hover:text-gray-200">Respondidas</button>
+                        <button data-tab="perdidas" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-400 hover:text-gray-200">Perdidas</button>
+                    </nav>
+                </div>
+                <div id="abertas" class="tab-content active grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <div id="respondidas" class="tab-content grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <div id="perdidas" class="tab-content grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+
+            <div id="takeAssessmentView" class="view">
+                 <div class="flex items-center gap-4 mb-6">
+                     <button id="backToStudentDashboard" class="bg-gray-700 p-2 rounded-full hover:bg-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                    <h2 id="takeAssessmentTitle" class="text-2xl font-bold">Responder Avaliação</h2>
+                </div>
+                <div id="takeAssessmentContent" class="bg-gray-800 p-8 rounded-xl shadow-lg"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        // --- CONFIGURAÇÃO ---
+        const firebaseConfig = {
+             apiKey: "AIzaSyDlfPPdM_w5Lr4I5iqq4SWtN4Cu90z_56k",
+             authDomain: "gerenciadordeturmas.firebaseapp.com",
+             projectId: "gerenciadordeturmas",
+             storageBucket: "gerenciadordeturmas.appspot.com",
+             messagingSenderId: "502627978091",
+             appId: "1:502627978091:web:9a74f69b2a98233fc41a2e",
+             measurementId: "G-SCRQCTZ8ZX"
+        };
+
+        const ADMIN_EMAIL = "elidio.junior@edu.sc.senai.br";
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+        let unsubscribeListeners = [];
+
+        // --- CONTROLE DE UI ---
+        const views = document.querySelectorAll('.view');
+        const appHeader = document.getElementById('appHeader');
+        
+        function showView(viewId) {
+            views.forEach(view => view.style.display = 'none');
+            appHeader.classList.add('hidden');
+            if (viewId) {
+                const viewElement = document.getElementById(viewId);
+                viewElement.style.display = 'block';
+                if(viewId !== 'loginView' && viewId !== 'registerView') {
+                    appHeader.classList.remove('hidden');
+                    appHeader.classList.add('flex');
+                }
+            }
+        }
+        
+        function clearListeners() {
+            unsubscribeListeners.forEach(unsub => unsub());
+            unsubscribeListeners = [];
+        }
+
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            const messageP = document.getElementById('notification-message');
+            messageP.textContent = message;
+            notification.className = `fixed top-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg z-50 transition-transform duration-300 transform translate-x-0`;
+            notification.classList.toggle('bg-red-500', isError);
+            notification.classList.toggle('bg-green-500', !isError);
+            setTimeout(() => notification.classList.add('translate-x-full'), 3000);
+        }
+
+        // Navigation Links
+        document.getElementById('showRegisterLink').addEventListener('click', (e) => { e.preventDefault(); showView('registerView'); });
+        document.getElementById('showLoginLink').addEventListener('click', (e) => { e.preventDefault(); showView('loginView'); });
+        
+        // --- LÓGICA DE AUTENTICAÇÃO E CADASTRO ---
+        document.getElementById('registerButton').addEventListener('click', async () => {
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+            const password = document.getElementById('registerPassword').value;
+            const turmaCode = document.getElementById('turmaCode').value.trim();
+
+            if (!name || !email || password.length < 6 || !turmaCode) {
+                showNotification("Preencha todos os campos.", true); return;
+            }
+            if (email === ADMIN_EMAIL) {
+                showNotification("Este email é reservado para administração.", true); return;
+            }
+            
+            const turmasRef = collection(db, "turmas");
+            const q = query(turmasRef, where("classCode", "==", turmaCode));
+            const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) {
+                showNotification("Código da Turma inválido ou não encontrado.", true); return;
+            }
+            const turmaDoc = querySnapshot.docs[0];
+            const turmaData = { id: turmaDoc.id, professorId: turmaDoc.data().professorId };
+
+            try {
+                showView('loader');
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                await setDoc(doc(db, "users", user.uid), {
+                    uid: user.uid, name, email, role: 'aluno',
+                    turmaId: turmaData.id, professorId: turmaData.professorId
+                });
+                // onAuthStateChanged will handle login.
+            } catch (error) {
+                showNotification(error.code === 'auth/email-already-in-use' ? "Este email já está em uso." : "Erro ao criar conta.", true);
+                showView('registerView');
+            }
+        });
+
+        document.getElementById('loginButton').addEventListener('click', async () => {
+            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+            const password = document.getElementById('loginPassword').value;
+            if (!email || !password) {
+                showNotification("Preencha email e senha.", true); return;
+            }
+            try {
+                showView('loader');
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                showNotification("Email ou senha inválidos.", true);
+                showView('loginView');
+            }
+        });
+
+        document.getElementById('logoutButton').addEventListener('click', async () => {
+            await signOut(auth);
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            clearListeners();
+            if (user) {
+                let userDoc = await getDoc(doc(db, "users", user.uid));
+                
+                if(user.email === ADMIN_EMAIL && !userDoc.exists()){
+                     await setDoc(doc(db, "users", user.uid), {
+                        uid: user.uid, name: "Elidio Junior", email: user.email, role: 'professor'
+                    });
+                    userDoc = await getDoc(doc(db, "users", user.uid));
+                }
+
+                if (userDoc.exists()) {
+                    currentUser = userDoc.data();
+                    document.getElementById('welcomeMessage').innerText = `Bem-vindo(a), ${currentUser.name}!`;
+                    document.getElementById('manageTurmasBtn').classList.toggle('hidden', currentUser.role !== 'professor');
+                    if (currentUser.role === 'professor') {
+                        loadProfessorDashboard();
+                    } else {
+                        loadAlunoDashboard();
+                    }
+                } else {
+                    await signOut(auth);
+                }
+            } else {
+                currentUser = null;
+                showView('loginView');
+            }
+        });
+        
+        async function calculateFileHash(file) {
+            const buffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        document.getElementById('dashboardBtn').addEventListener('click', () => {
+            if (currentUser.role === 'professor') loadProfessorDashboard(); else loadAlunoDashboard();
+        });
+        document.getElementById('manageTurmasBtn').addEventListener('click', () => loadProfessorTurmas());
+
+        // --- LÓGICA DO PROFESSOR ---
+        function loadProfessorTurmas() {
+            showView('professorTurmasView');
+            const q = query(collection(db, "turmas"), where("professorId", "==", currentUser.uid));
+            const unsub = onSnapshot(q, (snapshot) => {
+                const listEl = document.getElementById('turmasList');
+                listEl.innerHTML = snapshot.empty ? '<p class="text-gray-400">Nenhuma turma criada.</p>' : '';
+                snapshot.forEach(doc => {
+                    const turma = doc.data();
+                    listEl.innerHTML += `
+                        <div class="bg-gray-700 p-3 rounded-lg flex justify-between items-center">
+                            <span class="font-medium">${turma.name}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-orange-400 font-semibold bg-gray-800 px-2 py-1 rounded">Código: ${turma.classCode}</span>
+                                <button class="copy-code-btn text-gray-400 hover:text-orange-500" data-code="${turma.classCode}"><i class="fas fa-copy"></i></button>
+                                <button class="view-students-btn text-gray-400 hover:text-orange-500" data-turma-id="${doc.id}" data-turma-name="${turma.name}"><i class="fas fa-user-friends"></i></button>
+                            </div>
+                        </div>`;
+                });
+                document.querySelectorAll('.copy-code-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        navigator.clipboard.writeText(e.currentTarget.dataset.code);
+                        showNotification("Código copiado!");
+                    });
+                });
+                document.querySelectorAll('.view-students-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => viewStudentsInTurma(e.currentTarget.dataset.turmaId, e.currentTarget.dataset.turmaName));
+                });
+            });
+            unsubscribeListeners.push(unsub);
+        }
+
+        async function viewStudentsInTurma(turmaId, turmaName) {
+            showView('studentListView');
+            document.getElementById('studentListTitle').innerText = `Alunos em: ${turmaName}`;
+            const contentEl = document.getElementById('studentListContent');
+            contentEl.innerHTML = '<div class="loader"></div>';
+            
+            const q = query(collection(db, "users"), where("turmaId", "==", turmaId));
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+                contentEl.innerHTML = '<p class="text-gray-400">Nenhum aluno nesta turma.</p>'; return;
+            }
+            let html = '<ul class="space-y-2">';
+            snapshot.forEach(doc => {
+                const student = doc.data();
+                html += `<li class="bg-gray-700 p-3 rounded-md">${student.name} - ${student.email}</li>`;
+            });
+            html += '</ul>';
+            contentEl.innerHTML = html;
+        }
+
+        document.getElementById('createTurmaBtn').addEventListener('click', async () => {
+            const name = document.getElementById('newTurmaName').value.trim();
+            if(!name) return;
+            const classCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            await addDoc(collection(db, "turmas"), { name, professorId: currentUser.uid, classCode });
+            document.getElementById('newTurmaName').value = '';
+            showNotification("Turma criada com sucesso!");
+        });
+
+        function loadProfessorDashboard() {
+            showView('professorDashboardView');
+            const q = query(collection(db, "assessments"), where("professorId", "==", currentUser.uid));
+            const unsub = onSnapshot(q, (snapshot) => {
+                const listEl = document.getElementById('assessmentList');
+                listEl.innerHTML = snapshot.empty ? `<p class="text-gray-400 col-span-full text-center">Nenhuma avaliação criada.</p>` : '';
+                snapshot.forEach((doc) => {
+                    const assessment = doc.data();
+                    listEl.innerHTML += `
+                        <div class="bg-gray-800 p-5 rounded-xl shadow-md flex flex-col">
+                            <div class="relative">
+                                <h3 class="font-bold text-lg text-white">${assessment.title}</h3>
+                                <p class="text-sm text-gray-400 mb-4">Turma: ${assessment.turmaName || 'N/A'}</p>
+                                <img src="${assessment.imageUrl}" alt="Imagem da peça" class="w-full h-40 object-cover rounded-lg mb-4" onerror="this.src='https://placehold.co/600x400/374151/4b5563?text=Imagem'">
+                                <button data-id="${doc.id}" class="delete-assessment-btn absolute top-0 right-0 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-700">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                            <button data-id="${doc.id}" class="view-results-btn w-full mt-auto bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition">
+                                <i class="fas fa-chart-bar mr-2"></i>Ver Resultados
+                            </button>
+                        </div>`;
+                });
+                document.querySelectorAll('.view-results-btn').forEach(button => {
+                    button.addEventListener('click', (e) => viewSubmissions(e.currentTarget.dataset.id));
+                });
+                document.querySelectorAll('.delete-assessment-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        confirmDeleteAssessment(e.currentTarget.dataset.id);
+                    });
+                });
+            });
+            unsubscribeListeners.push(unsub);
+        }
+        
+        document.getElementById('showCreateAssessmentView').addEventListener('click', async () => {
+            showView('createAssessmentView');
+            document.getElementById('criteriaContainer').innerHTML = '';
+            const turmaSelect = document.getElementById('assessmentTurma');
+            turmaSelect.innerHTML = '<option>Carregando...</option>';
+            const q = query(collection(db, "turmas"), where("professorId", "==", currentUser.uid));
+            const snapshot = await getDocs(q);
+            turmaSelect.innerHTML = snapshot.empty ? '<option value="">Crie uma turma primeiro</option>' : '';
+            snapshot.forEach(doc => {
+                turmaSelect.innerHTML += `<option value="${doc.id}" data-name="${doc.data().name}">${doc.data().name}</option>`;
+            });
+        });
+
+        document.getElementById('saveAssessment').addEventListener('click', async () => {
+            const title = document.getElementById('assessmentTitle').value;
+            const imageUrl = document.getElementById('imageUrl').value;
+            const pdfUrl = document.getElementById('pdfUrl').value;
+            const attemptsAllowed = parseInt(document.getElementById('assessmentAttempts').value, 10);
+            const deadlineValue = document.getElementById('assessmentDeadline').value;
+            const turmaSelect = document.getElementById('assessmentTurma');
+            const turmaId = turmaSelect.value;
+            const turmaName = turmaSelect.options[turmaSelect.selectedIndex]?.dataset.name;
+
+            if (!title || !turmaId || !attemptsAllowed || !deadlineValue) { 
+                showNotification("Preencha todos os campos, incluindo a data limite.", true); return; 
+            }
+            
+            const deadline = Timestamp.fromDate(new Date(deadlineValue));
+            const criteria = [];
+            const criteriaElements = document.querySelectorAll('.criterion-card');
+            if (criteriaElements.length === 0) { showNotification("Adicione pelo menos um critério.", true); return; }
+
+            let valid = true;
+            criteriaElements.forEach(el => {
+                const label = el.querySelector('input[name="label"]').value;
+                const type = el.querySelector('select[name="type"]').value;
+                const correctAnswer = el.querySelector('input[name="correctAnswer"]').value;
+                if (!label || !correctAnswer) valid = false;
+
+                const criterion = { label, type, correctAnswer };
+                if (type === 'numeric') {
+                    criterion.correctAnswer = parseFloat(correctAnswer);
+                    criterion.toleranceType = el.querySelector('select[name="toleranceType"]').value;
+                    criterion.toleranceValue = parseFloat(el.querySelector('input[name="toleranceValue"]').value);
+                    if (isNaN(criterion.correctAnswer) || isNaN(criterion.toleranceValue)) valid = false;
+                }
+                criteria.push(criterion);
+            });
+
+            if(!valid) { showNotification("Preencha todos os campos dos critérios.", true); return; }
+            
+            try {
+                showView('loader');
+                await addDoc(collection(db, "assessments"), {
+                    title, imageUrl, pdfUrl, turmaId, turmaName, criteria, attemptsAllowed, deadline,
+                    professorId: currentUser.uid, createdAt: new Date(), resultsRevealed: false
+                });
+                showNotification("Avaliação criada!");
+                loadProfessorDashboard();
+            } catch(e) { showNotification("Erro ao salvar.", true); console.error(e); }
+        });
+        
+        let confirmAction = null;
+        const modal = document.getElementById('confirmationModal');
+        document.getElementById('modalCancel').addEventListener('click', () => modal.classList.add('hidden'));
+        document.getElementById('modalConfirm').addEventListener('click', () => {
+            if(confirmAction) confirmAction();
+            modal.classList.add('hidden');
+        });
+
+        function confirmDeleteAssessment(assessmentId) {
+            modal.querySelector('#modalTitle').innerText = "Excluir Avaliação";
+            modal.querySelector('#modalMessage').innerText = "Tem certeza que deseja excluir esta avaliação? Todas as respostas dos alunos serão perdidas permanentemente.";
+            confirmAction = () => deleteAssessment(assessmentId);
+            modal.classList.remove('hidden');
+        }
+
+        async function deleteAssessment(assessmentId) {
+            try {
+                showView('loader');
+                const batch = writeBatch(db);
+                // Delete submissions
+                const subQuery = query(collection(db, 'submissions'), where('assessmentId', '==', assessmentId));
+                const subSnapshot = await getDocs(subQuery);
+                subSnapshot.forEach(doc => batch.delete(doc.ref));
+                // Delete assessment
+                const assessmentRef = doc(db, 'assessments', assessmentId);
+                batch.delete(assessmentRef);
+                await batch.commit();
+                showNotification("Avaliação excluída com sucesso.");
+                loadProfessorDashboard();
+            } catch(e) {
+                showNotification("Erro ao excluir avaliação.", true);
+                console.error(e);
+                loadProfessorDashboard();
+            }
+        }
+
+        async function viewSubmissions(assessmentId) {
+            // Functionality remains the same as previous version, just showing it for completeness
+            showView('resultsView');
+            const contentEl = document.getElementById('resultsContent');
+            contentEl.innerHTML = '<div class="loader"></div>';
+
+            const assessmentRef = doc(db, "assessments", assessmentId);
+            const assessmentSnap = await getDoc(assessmentRef);
+            const assessmentData = assessmentSnap.data();
+            document.getElementById('resultsTitle').innerText = `Resultados: ${assessmentData.title}`;
+
+            const q = query(collection(db, "submissions"), where("assessmentId", "==", assessmentId));
+            const unsub = onSnapshot(q, (snapshot) => {
+                const submissions = [];
+                const hashCounts = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    submissions.push({id: doc.id, ...data});
+                    if(data.fileHash) {
+                        hashCounts[data.fileHash] = (hashCounts[data.fileHash] || 0) + 1;
+                    }
+                });
+                
+                let html = `<div class="overflow-x-auto"><table class="w-full text-left table-auto"><thead><tr class="bg-gray-700">
+                           <th class="p-3">Aluno</th>`;
+                assessmentData.criteria.forEach(c => html += `<th class="p-3">${c.label}</th>`);
+                html += `<th class="p-3">Hash do Arquivo</th><th class="p-3 text-center">Nota</th></tr></thead><tbody>`;
+
+                if (submissions.length === 0) {
+                    html += `<tr><td colspan="${assessmentData.criteria.length + 3}" class="text-center p-4 text-gray-400">Nenhuma resposta enviada.</td></tr>`;
+                } else {
+                    submissions.forEach(sub => {
+                        const isCopied = sub.fileHash && hashCounts[sub.fileHash] > 1;
+                        html += `<tr class="border-b border-gray-700"><td class="p-3 font-medium">${sub.studentName} ${isCopied ? `<i class="fas fa-exclamation-triangle text-yellow-400 ml-2" title="Possível cópia detectada: ${sub.fileHash}"></i>` : ''}</td>`;
+                        
+                        let correctCount = 0;
+                        assessmentData.criteria.forEach((criterion, index) => {
+                            const studentAnswer = sub.answers[index];
+                            let isCorrect = false;
+                            
+                            if (criterion.type === 'numeric') {
+                                const sVal = parseFloat(studentAnswer), cVal = parseFloat(criterion.correctAnswer), tVal = parseFloat(criterion.toleranceValue);
+                                isCorrect = (criterion.toleranceType === 'percentage') ? Math.abs(sVal - cVal) <= (cVal * (tVal / 100)) : Math.abs(sVal - cVal) <= tVal;
+                            } else { 
+                                isCorrect = studentAnswer.trim().toLowerCase() === criterion.correctAnswer.trim().toLowerCase(); 
+                            }
+                            if(isCorrect) correctCount++;
+                            
+                             html += `<td class="p-3">${studentAnswer} ${isCorrect ? '<i class="fas fa-check-circle text-green-500 ml-2"></i>' : '<i class="fas fa-times-circle text-red-500 ml-2"></i>'}</td>`;
+                        });
+                        
+                        const score = `${correctCount} / ${assessmentData.criteria.length}`;
+                        const fileHashShort = sub.fileHash ? sub.fileHash.substring(0, 10) + '...' : 'N/A';
+                        html += `<td class="p-3 font-mono text-sm" title="${sub.fileHash || ''}">${fileHashShort}</td>
+                                 <td class="p-3 text-center font-bold ${correctCount === assessmentData.criteria.length ? 'text-green-400' : 'text-orange-400'}">${score}</td></tr>`;
+                    });
+                }
+                
+                html += '</tbody></table></div>';
+                
+                if(!assessmentData.resultsRevealed) {
+                    html = `<button id="revealResultsBtn" class="w-full mb-6 bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition">
+                                <i class="fas fa-eye mr-2"></i>Divulgar Resultados para Alunos</button>` + html;
+                } else {
+                    html = `<div class="w-full mb-6 bg-green-800 text-green-300 text-center font-bold py-3 rounded-lg">
+                                <i class="fas fa-check-circle mr-2"></i>Resultados já foram divulgados.
+                            </div>` + html;
+                }
+
+                contentEl.innerHTML = html;
+                if(!assessmentData.resultsRevealed) {
+                     document.getElementById('revealResultsBtn').addEventListener('click', async () => {
+                         await updateDoc(assessmentRef, { resultsRevealed: true });
+                         showNotification("Resultados divulgados para todos os alunos!");
+                    });
+                }
+            });
+            unsubscribeListeners.push(unsub);
+        }
+
+        // --- LÓGICA DO ALUNO ---
+        function setupTabs() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('active', 'text-orange-500');
+                        btn.classList.add('text-gray-400');
+                    });
+                    button.classList.add('active', 'text-orange-500');
+                    
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(button.dataset.tab).classList.add('active');
+                });
+            });
+        }
+        
+        async function loadAlunoDashboard() {
+            showView('alunoDashboardView');
+            setupTabs();
+
+            const abertasEl = document.getElementById('abertas');
+            const respondidasEl = document.getElementById('respondidas');
+            const perdidasEl = document.getElementById('perdidas');
+            abertasEl.innerHTML = respondidasEl.innerHTML = perdidasEl.innerHTML = '<div class="loader col-span-full"></div>';
+
+            const assessmentsQuery = query(collection(db, "assessments"), where("turmaId", "==", currentUser.turmaId));
+            const subsQuery = query(collection(db, "submissions"), where("studentId", "==", currentUser.uid));
+
+            const [assessmentsSnapshot, submissionsSnapshot] = await Promise.all([getDocs(assessmentsQuery), getDocs(subsQuery)]);
+
+            const studentSubmissions = {};
+            submissionsSnapshot.forEach(doc => {
+                const sub = doc.data();
+                if(!studentSubmissions[sub.assessmentId]) {
+                    studentSubmissions[sub.assessmentId] = [];
+                }
+                studentSubmissions[sub.assessmentId].push(sub);
+            });
+            
+            let abertasHtml = '', respondidasHtml = '', perdidasHtml = '';
+
+            const now = new Date();
+            for (const doc of assessmentsSnapshot.docs) {
+                const assessment = { id: doc.id, ...doc.data() };
+                const deadline = assessment.deadline.toDate();
+                const mySubmissions = studentSubmissions[assessment.id] || [];
+                
+                const cardHtml = `
+                    <div class="bg-gray-800 p-5 rounded-xl shadow-md flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-lg text-white">${assessment.title}</h3>
+                            <p class="text-sm text-gray-400 mb-2">Prazo: ${deadline.toLocaleString('pt-BR')}</p>
+                            <img src="${assessment.imageUrl}" alt="Imagem da peça" class="w-full h-40 object-cover rounded-lg my-4" onerror="this.src='https://placehold.co/600x400/374151/4b5563?text=Imagem'">
+                        </div>
+                        <button data-id="${assessment.id}" class="take-assessment-btn w-full mt-auto bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-orange-700 transition">
+                            <i class="fas fa-pencil-alt mr-2"></i>Ver Avaliação</button>
+                    </div>`;
+
+                if (mySubmissions.length > 0) {
+                    respondidasHtml += cardHtml;
+                } else if (now > deadline) {
+                    perdidasHtml += cardHtml;
+                } else {
+                    abertasHtml += cardHtml;
+                }
+            }
+
+            abertasEl.innerHTML = abertasHtml || '<p class="text-gray-400 col-span-full text-center">Nenhuma avaliação aberta no momento.</p>';
+            respondidasEl.innerHTML = respondidasHtml || '<p class="text-gray-400 col-span-full text-center">Você ainda não respondeu nenhuma avaliação.</p>';
+            perdidasEl.innerHTML = perdidasHtml || '<p class="text-gray-400 col-span-full text-center">Nenhuma avaliação perdida.</p>';
+
+            document.querySelectorAll('.take-assessment-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => takeAssessment(e.currentTarget.dataset.id));
+            });
+        }
+
+        async function takeAssessment(assessmentId) {
+            // Functionality remains the same
+            showView('takeAssessmentView');
+            const contentEl = document.getElementById('takeAssessmentContent');
+            contentEl.innerHTML = '<div class="loader"></div>';
+
+            const subQuery = query(collection(db, "submissions"), where("assessmentId", "==", assessmentId), where("studentId", "==", currentUser.uid));
+            const subSnapshot = await getDocs(subQuery);
+            const attemptsMade = subSnapshot.size;
+            const lastSubmission = subSnapshot.empty ? null : subSnapshot.docs.sort((a,b) => b.data().submittedAt - a.data().submittedAt)[0]?.data();
+
+            const assessmentSnap = await getDoc(doc(db, "assessments", assessmentId));
+            const assessmentData = assessmentSnap.data();
+            const attemptsAllowed = assessmentData.attemptsAllowed || 1;
+            const deadline = assessmentData.deadline.toDate();
+            document.getElementById('takeAssessmentTitle').innerText = assessmentData.title;
+            
+            let htmlContent = '';
+
+            if (assessmentData.resultsRevealed) {
+                // Logic for showing final results
+                if(!lastSubmission) {
+                    htmlContent = `<div class="text-center p-4 bg-yellow-900 border-l-4 border-yellow-500 text-yellow-300 rounded-lg">
+                                    <h3 class="font-bold">Resultados Divulgados</h3>
+                                    <p>Os resultados já foram revelados e você não enviou uma resposta para esta avaliação.</p>
+                                  </div>`;
+                } else {
+                     let resultsHtml = `<div class="text-center"><h3 class="text-xl font-bold mb-4">Seu Resultado Final</h3>`;
+                     resultsHtml += '<div class="space-y-4">';
+                     let correctCount = 0;
+                     assessmentData.criteria.forEach((criterion, index) => {
+                        const studentAnswer = lastSubmission.answers[index];
+                        let isCorrect = false;
+                        if (criterion.type === 'numeric') {
+                            const sVal = parseFloat(studentAnswer), cVal = parseFloat(criterion.correctAnswer), tVal = parseFloat(criterion.toleranceValue);
+                            isCorrect = criterion.toleranceType === 'percentage' ? Math.abs(sVal - cVal) <= (cVal * (tVal / 100)) : Math.abs(sVal - cVal) <= tVal;
+                        } else {
+                            isCorrect = studentAnswer.trim().toLowerCase() === criterion.correctAnswer.trim().toLowerCase();
+                        }
+                        if(isCorrect) correctCount++;
+
+                        resultsHtml += `<div class="p-3 rounded-lg ${isCorrect ? 'bg-green-900 border border-green-700' : 'bg-red-900 border border-red-700'}">
+                                            <p class="font-semibold">${criterion.label}: 
+                                                ${isCorrect ? '<span class="text-green-400">Correto</span>' : '<span class="text-red-400">Incorreto</span>'}
+                                            </p>
+                                            <p class="text-sm text-gray-400">Sua resposta: <span class="font-mono text-white">${studentAnswer}</span> | Correta: <span class="font-mono text-white">${criterion.correctAnswer}</span></p>
+                                        </div>`;
+                     });
+                     resultsHtml += `</div><div class="mt-6 p-4 rounded-lg font-bold text-2xl ${correctCount === assessmentData.criteria.length ? 'bg-green-800 text-green-300' : 'bg-orange-800 text-orange-300'}">
+                                        Pontuação: ${correctCount} / ${assessmentData.criteria.length}
+                                     </div></div>`;
+                     htmlContent = resultsHtml;
+                }
+            } else if (new Date() > deadline) {
+                htmlContent = `<div class="text-center p-4 bg-red-900 border-l-4 border-red-500 text-red-300 rounded-lg">
+                                <h3 class="font-bold">Prazo Encerrado</h3>
+                                <p>O prazo para responder esta avaliação já terminou.</p>
+                              </div>`;
+            } else if (attemptsMade >= attemptsAllowed) {
+                 htmlContent = `<div class="text-center">
+                                <i class="fas fa-stop-circle text-5xl text-red-500 mb-4"></i>
+                                <h3 class="text-xl font-bold mb-2">Você atingiu o limite de tentativas!</h3>
+                                <p class="text-gray-400">Aguarde o professor revelar os resultados. Tentativas feitas: ${attemptsMade}/${attemptsAllowed}</p>
+                            </div>`;
+            } else {
+                 htmlContent = `
+                    <div class="flex flex-col md:flex-row gap-8">
+                        <div class="md:w-1/2">
+                            <h3 class="font-bold mb-2">Peça a ser modelada:</h3>
+                            <p class="text-sm text-yellow-400 mb-2">Tentativas restantes: ${attemptsAllowed - attemptsMade} de ${attemptsAllowed}</p>
+                            <img src="${assessmentData.imageUrl}" class="rounded-lg shadow-lg w-full mb-4" onerror="this.src='https://placehold.co/600x400/374151/4b5563?text=Imagem'">
+                            <a href="${assessmentData.pdfUrl}" target="_blank" class="block w-full text-center bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition">
+                                <i class="fas fa-file-pdf mr-2"></i>Baixar PDF do Desenho
+                            </a>
+                        </div>
+                        <form id="submissionForm" class="md:w-1/2 space-y-4">
+                            <h3 class="font-bold">Insira os valores encontrados:</h3>
+                            ${assessmentData.criteria.map((c, i) => `
+                                <div><label class="block text-sm font-medium text-gray-300">${c.label}</label>
+                                <input type="${c.type === 'numeric' ? 'number' : 'text'}" data-index="${i}" required class="mt-1 w-full px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white"></div>
+                            `).join('')}
+                             <div><label class="block text-sm font-medium text-gray-300">Arquivo da Peça (.sldprt, .sldasm)</label>
+                                <input type="file" id="studentFile" required accept=".sldprt,.sldasm" class="mt-1 w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700"></div>
+                            <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition">Enviar Resposta</button>
+                        </form>
+                    </div>`;
+            }
+            contentEl.innerHTML = htmlContent;
+            
+            document.getElementById('submissionForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                showView('loader');
+                try {
+                    const answers = Array.from(e.target.querySelectorAll('input[data-index]')).map(input => input.value);
+                    const file = document.getElementById('studentFile').files[0];
+                    if (answers.some(a => !a) || !file) {
+                        showNotification("Preencha todos os campos e anexe o arquivo.", true);
+                        showView('takeAssessmentView'); // Go back
+                        takeAssessment(assessmentId); // Reload content
+                        return; 
+                    }
+                    const fileHash = await calculateFileHash(file);
+                    await addDoc(collection(db, 'submissions'), {
+                        assessmentId, studentId: currentUser.uid, studentName: currentUser.name,
+                        answers, fileHash, submittedAt: new Date()
+                    });
+                    showNotification("Resposta enviada com sucesso!");
+                    loadAlunoDashboard();
+                } catch(err) {
+                     showNotification("Erro ao enviar resposta.", true); console.error(err);
+                     takeAssessment(assessmentId);
+                }
+            });
+        }
+
+        // --- Back Buttons ---
+        document.getElementById('cancelCreate').addEventListener('click', loadProfessorDashboard);
+        document.getElementById('backToProfessorDashboard').addEventListener('click', loadProfessorDashboard);
+        document.getElementById('backToStudentDashboard').addEventListener('click', loadAlunoDashboard);
+        document.getElementById('backToTurmasView').addEventListener('click', loadProfessorTurmas);
+        document.getElementById('backToProfessorDashboardFromTurmas').addEventListener('click', loadProfessorDashboard);
+    </script>
+</body>
+</html>
