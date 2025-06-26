@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AVALIA EPROJECTS - Sistema de Avaliação</title>
+    <title>SW-Eval Pro - Sistema de Avaliação</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -70,8 +70,8 @@
                         <input type="email" id="loginEmail" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="seu.email@exemplo.com">
                     </div>
                     <div class="mb-6">
-                        <label for="loginPasord" class="block text-sm font-medium text-gray-300 mb-2">Senha:</label>
-                        <input type="pasord" id="loginPasord" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="••••••••">
+                        <label for="loginPassword" class="block text-sm font-medium text-gray-300 mb-2">Senha:</label>
+                        <input type="password" id="loginPassword" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="••••••••">
                     </div>
                     <button id="loginButton" class="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-700 transition">Entrar</button>
                     <p class="text-center text-sm text-gray-400 mt-4">
@@ -96,7 +96,7 @@
                         <input type="email" id="registerEmail" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500">
                     </div>
                     <div class="mb-4">
-                        <label for="registerPasord" class="block text-sm font-medium text-gray-300 mb-2">Senha (mínimo 6 caracteres):</label>
+                        <label for="registerPassword" class="block text-sm font-medium text-gray-300 mb-2">Senha (mínimo 6 caracteres):</label>
                         <input type="password" id="registerPassword" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500">
                     </div>
                     <div id="turmaCodeContainer" class="mb-6">
@@ -506,6 +506,49 @@
             snapshot.forEach(doc => {
                 turmaSelect.innerHTML += `<option value="${doc.id}" data-name="${doc.data().name}">${doc.data().name}</option>`;
             });
+        });
+
+        document.getElementById('addCriterionBtn').addEventListener('click', () => {
+            const container = document.getElementById('criteriaContainer');
+            const newCriterion = document.createElement('div');
+            newCriterion.className = 'criterion-card relative bg-gray-700 p-4 rounded-lg border border-gray-600 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end';
+            newCriterion.innerHTML = `
+                <div>
+                    <label class="text-sm font-medium text-gray-300">Rótulo (Ex: Massa)</label>
+                    <input type="text" name="label" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-300">Tipo de Resposta</label>
+                    <select name="type" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
+                        <option value="numeric">Número</option><option value="text">Texto</option>
+                    </select>
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="text-sm font-medium text-gray-300">Resposta Correta</label>
+                    <input type="text" name="correctAnswer" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
+                </div>
+                <div name="toleranceSection" class="lg:col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-300">Tipo de Tolerância</label>
+                        <select name="toleranceType" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
+                            <option value="percentage">Porcentagem (%)</option><option value="absolute">Valor Absoluto</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-300">Valor Tolerância</label>
+                        <input type="number" name="toleranceValue" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white" value="0.5" step="0.1">
+                    </div>
+                </div>
+                <button type="button" name="removeCriterion" class="absolute top-2 right-2 text-red-400 hover:text-red-500 text-2xl font-bold">&times;</button>`;
+            container.appendChild(newCriterion);
+            
+            const typeSelect = newCriterion.querySelector('select[name="type"]');
+            typeSelect.addEventListener('change', (e) => {
+                const toleranceSection = newCriterion.querySelector('div[name="toleranceSection"]');
+                toleranceSection.style.display = e.target.value === 'numeric' ? 'grid' : 'none';
+            });
+            typeSelect.dispatchEvent(new Event('change'));
+            newCriterion.querySelector('button[name="removeCriterion"]').addEventListener('click', () => newCriterion.remove());
         });
 
         document.getElementById('saveAssessment').addEventListener('click', async () => {
