@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AVALIA EPROJECTS - Sistema de Avaliação</title>
+    <title>SW-Eval Pro - Sistema de Avaliação</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -765,7 +765,7 @@
             const now = new Date();
             for (const doc of assessmentsSnapshot.docs) {
                 const assessment = { id: doc.id, ...doc.data() };
-                const deadline = assessment.deadline.toDate();
+                const deadline = assessment.deadline ? assessment.deadline.toDate() : new Date(0); // FIX: Add fallback
                 const mySubmissions = studentSubmissions[assessment.id] || [];
                 
                 const cardHtml = `
@@ -811,7 +811,7 @@
             const assessmentSnap = await getDoc(doc(db, "assessments", assessmentId));
             const assessmentData = assessmentSnap.data();
             const attemptsAllowed = assessmentData.attemptsAllowed || 1;
-            const deadline = assessmentData.deadline.toDate();
+            const deadline = assessmentData.deadline ? assessmentData.deadline.toDate() : new Date(); // FIX: Add fallback
             document.getElementById('takeAssessmentTitle').innerText = assessmentData.title;
             
             let htmlContent = '';
@@ -918,6 +918,73 @@
         document.getElementById('backToStudentDashboard').addEventListener('click', loadAlunoDashboard);
         document.getElementById('backToTurmasView').addEventListener('click', loadProfessorTurmas);
         document.getElementById('backToProfessorDashboardFromTurmas').addEventListener('click', loadProfessorDashboard);
+
+         // --- Anti-Debugging ---
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'F12' || 
+            (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.key === 'J' || event.key === 'j' || event.key === 'C' || event.key === 'c')) ||
+            (event.ctrlKey && (event.key === 'U' || event.key === 'u'))) {
+                event.preventDefault();
+                showNotification("Acesso às ferramentas de desenvolvedor foi bloqueado.", true);
+            }
+        });
+
+        function detectDevTools() {
+            const threshold = 160;
+            const devtools = {
+                isOpen: false,
+                orientation: null,
+            };
+            const emitEvent = (isOpen, orientation) => {
+                window.dispatchEvent(new CustomEvent('devtoolschange', {
+                    detail: { isOpen, orientation },
+                }));
+            };
+
+            const main = () => {
+                const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+                const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+                const orientation = widthThreshold ? 'vertical' : 'horizontal';
+                if (
+                    !(heightThreshold && widthThreshold) &&
+                    ((window.Firebug && window.Firebug.chrome && window.Firebug.chrome.isInitialized) || widthThreshold || heightThreshold)
+                ) {
+                    if (!devtools.isOpen || devtools.orientation !== orientation) {
+                        emitEvent(true, orientation);
+                    }
+                    devtools.isOpen = true;
+                    devtools.orientation = orientation;
+                } else {
+                    if (devtools.isOpen) {
+                        emitEvent(false, null);
+                    }
+                    devtools.isOpen = false;
+                    devtools.orientation = null;
+                }
+            };
+            
+            const checkDebugger = () => {
+                 const startTime = new Date().getTime();
+                 debugger;
+                 if (new Date().getTime() - startTime > 100) {
+                     emitEvent(true, null);
+                 }
+            };
+
+            setInterval(main, 500);
+            setInterval(checkDebugger, 1000);
+
+            window.addEventListener('devtoolschange', event => {
+                if(event.detail.isOpen){
+                    document.body.innerHTML = `<div class="h-screen w-screen flex items-center justify-center bg-gray-900 text-white text-2xl font-bold p-8 text-center">
+                        <i class="fas fa-ban text-red-500 text-5xl mr-4"></i> Por favor, feche as ferramentas de desenvolvedor para continuar.
+                    </div>`;
+                }
+            });
+        }
+        detectDevTools();
+
     </script>
 </body>
 </html>
