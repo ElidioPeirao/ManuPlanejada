@@ -43,19 +43,30 @@
     <div id="app" class="container mx-auto p-4 md:p-8 max-w-7xl">
 
         <!-- Notificação -->
-        <div id="notification" class="hidden fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg z-50 transition-transform translate-x-full">
+        <div id="notification" class="fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg z-50 transition-transform duration-500 transform translate-x-[110%]">
             <p id="notification-message"></p>
         </div>
 
         <!-- Modal de Confirmação -->
         <div id="confirmationModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-            <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-sm text-center">
+            <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-sm w-full text-center">
                 <h3 id="modalTitle" class="text-xl font-bold mb-4">Confirmar Ação</h3>
                 <p id="modalMessage" class="text-gray-300 mb-6">Você tem certeza?</p>
                 <div class="flex justify-center gap-4">
                     <button id="modalCancel" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg">Cancelar</button>
                     <button id="modalConfirm" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Confirmar</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Modal Genérico (Recuperar Senha, Editar Turma) -->
+        <div id="genericModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="genericModalTitle" class="text-xl font-bold"></h3>
+                    <button id="genericModalClose" class="text-gray-400 hover:text-white">&times;</button>
+                </div>
+                <div id="genericModalContent"></div>
             </div>
         </div>
         
@@ -69,9 +80,12 @@
                         <label for="loginEmail" class="block text-sm font-medium text-gray-300 mb-2">Email:</label>
                         <input type="email" id="loginEmail" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="seu.email@exemplo.com">
                     </div>
-                    <div class="mb-6">
+                    <div class="mb-4">
                         <label for="loginPassword" class="block text-sm font-medium text-gray-300 mb-2">Senha:</label>
                         <input type="password" id="loginPassword" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="••••••••">
+                    </div>
+                    <div class="text-right mb-6">
+                         <a href="#" id="showForgotPassword" class="text-sm font-medium text-orange-500 hover:underline">Esqueceu a senha?</a>
                     </div>
                     <button id="loginButton" class="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-700 transition">Entrar</button>
                     <p class="text-center text-sm text-gray-400 mt-4">
@@ -160,8 +174,8 @@
                  <div class="flex items-center gap-4 mb-6">
                      <button id="backToTurmasView" class="bg-gray-700 p-2 rounded-full hover:bg-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
                      <h2 id="studentListTitle" class="text-2xl font-bold">Alunos na Turma</h2>
-                </div>
-                <div id="studentListContent" class="bg-gray-800 p-6 rounded-xl shadow-lg"></div>
+                 </div>
+                 <div id="studentListContent" class="bg-gray-800 p-6 rounded-xl shadow-lg"></div>
             </div>
 
             <div id="createAssessmentView" class="view">
@@ -193,18 +207,24 @@
                             <input type="datetime-local" id="assessmentDeadline" class="w-full mt-1 px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white">
                         </div>
                          <div class="lg:col-span-2 grid grid-cols-2 gap-4">
-                            <div>
+                             <div>
                                 <label for="assessmentMaxGrade" class="block text-sm font-medium text-gray-300">Nota Máxima</label>
                                 <input type="number" id="assessmentMaxGrade" value="10" min="0" class="w-full mt-1 px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white">
-                            </div>
-                            <div>
+                             </div>
+                             <div>
                                 <label for="gradingType" class="block text-sm font-medium text-gray-300">Ponderação por</label>
                                 <select id="gradingType" class="w-full mt-1 px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white">
                                     <option value="percentage">Porcentagem (%)</option>
                                     <option value="points">Pontos Fixos</option>
                                 </select>
-                            </div>
+                             </div>
                          </div>
+                         <div class="col-span-1 flex items-end pb-1">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="assessmentFileRequired" class="h-4 w-4 rounded border-gray-300 bg-gray-600 text-orange-600 focus:ring-orange-500" checked>
+                                <label for="assessmentFileRequired" class="ml-2 block text-sm font-medium text-gray-300">Exigir envio de arquivo</label>
+                            </div>
+                        </div>
                     </div>
                     <div class="flex justify-between items-center mb-4 border-t border-gray-700 pt-4">
                         <h3 class="font-bold text-lg">Critérios de Avaliação</h3>
@@ -259,7 +279,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
         // --- CONFIGURAÇÃO ---
         const firebaseConfig = {
@@ -280,6 +300,7 @@
 
         let currentUser = null;
         let unsubscribeListeners = [];
+        let notificationTimeout;
 
         // --- CONTROLE DE UI ---
         const views = document.querySelectorAll('.view');
@@ -306,18 +327,107 @@
         function showNotification(message, isError = false) {
             const notification = document.getElementById('notification');
             const messageP = document.getElementById('notification-message');
+
+            clearTimeout(notificationTimeout);
+
             messageP.textContent = message;
-            notification.className = `fixed top-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg z-50 transition-transform duration-300 transform translate-x-0`;
-            notification.classList.toggle('bg-red-500', isError);
-            notification.classList.toggle('bg-green-500', !isError);
-            setTimeout(() => notification.classList.add('translate-x-full'), 3000);
+
+            notification.classList.remove('bg-green-500', 'bg-red-500', 'translate-x-[110%]');
+            notification.classList.add(isError ? 'bg-red-500' : 'bg-green-500', 'translate-x-0');
+
+            notificationTimeout = setTimeout(() => {
+                notification.classList.remove('translate-x-0');
+                notification.classList.add('translate-x-[110%]');
+            }, 3500);
         }
+
+        function calculateTotalWeight() {
+            const gradingType = document.getElementById('gradingType').value;
+            const isPercentage = gradingType === 'percentage';
+            let total = 0;
+            document.querySelectorAll('#createAssessmentView input[name="weight"]').forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+
+            const totalEl = document.getElementById('weightTotal');
+            totalEl.textContent = `${total.toFixed(1)}${isPercentage ? '%' : ''}`;
+            
+            let target;
+            if (isPercentage) {
+                target = 100;
+            } else {
+                target = parseFloat(document.getElementById('assessmentMaxGrade').value) || 0;
+            }
+            
+            if (Math.abs(total - target) < 0.01) { // Floating point comparison
+                totalEl.className = 'font-bold text-lg text-green-400';
+            } else {
+                totalEl.className = 'font-bold text-lg text-red-400';
+            }
+        }
+        
+        function updateWeightLabels() {
+            const gradingType = document.getElementById('gradingType').value;
+            const isPercentage = gradingType === 'percentage';
+            document.querySelectorAll('.criterion-weight-label').forEach(label => {
+                label.textContent = isPercentage ? 'Peso (%)' : 'Pontos';
+            });
+            calculateTotalWeight();
+        }
+
+        // --- MODAL GENÉRICO ---
+        const genericModal = document.getElementById('genericModal');
+        const genericModalTitle = document.getElementById('genericModalTitle');
+        const genericModalContent = document.getElementById('genericModalContent');
+        const genericModalClose = document.getElementById('genericModalClose');
+
+        function openGenericModal(title, contentHtml) {
+            genericModalTitle.innerText = title;
+            genericModalContent.innerHTML = contentHtml;
+            genericModal.classList.remove('hidden');
+        }
+
+        function closeGenericModal() {
+            genericModal.classList.add('hidden');
+            genericModalContent.innerHTML = '';
+        }
+
+        genericModalClose.addEventListener('click', closeGenericModal);
 
         // Navigation Links
         document.getElementById('showRegisterLink').addEventListener('click', (e) => { e.preventDefault(); showView('registerView'); });
         document.getElementById('showLoginLink').addEventListener('click', (e) => { e.preventDefault(); showView('loginView'); });
         
-        // --- LÓGICA DE AUTENTICAÇÃO E CADASTRO ---
+        // --- LÓGICA DE AUTENTICAÇÃO, CADASTRO E RECUPERAÇÃO DE SENHA ---
+
+        document.getElementById('showForgotPassword').addEventListener('click', (e) => {
+            e.preventDefault();
+            const content = `
+                <p class="text-gray-400 mb-4">Insira seu e-mail para receber o link de redefinição.</p>
+                <form id="forgotPasswordForm">
+                    <div class="mb-4">
+                        <label for="recoveryEmail" class="block text-sm font-medium text-gray-300 mb-2">Email:</label>
+                        <input type="email" id="recoveryEmail" required class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <button type="submit" class="w-full bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700 transition">Enviar Link</button>
+                </form>
+            `;
+            openGenericModal('Recuperar Senha', content);
+
+            document.getElementById('forgotPasswordForm').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const email = document.getElementById('recoveryEmail').value;
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    closeGenericModal();
+                    showNotification("Se houver uma conta com este e-mail, um link foi enviado.");
+                } catch (error) {
+                    console.error("Erro ao enviar e-mail de recuperação:", error);
+                    showNotification("Erro ao tentar enviar o e-mail. Tente novamente.", true);
+                }
+            });
+        });
+
         document.getElementById('registerButton').addEventListener('click', async () => {
             const name = document.getElementById('registerName').value.trim();
             const email = document.getElementById('registerEmail').value.trim().toLowerCase();
@@ -345,10 +455,9 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
                 await setDoc(doc(db, "users", user.uid), {
-                    uid: user.uid, name, email, role: 'aluno',
+                    uid: user.uid, name, email, role: 'aluno', isBlocked: false,
                     turmaId: turmaData.id, professorId: turmaData.professorId
                 });
-                // onAuthStateChanged will handle login.
             } catch (error) {
                 showNotification(error.code === 'auth/email-already-in-use' ? "Este email já está em uso." : "Erro ao criar conta.", true);
                 showView('registerView');
@@ -381,9 +490,9 @@
                 
                 if(user.email === ADMIN_EMAIL && !userDoc.exists()){
                      await setDoc(doc(db, "users", user.uid), {
-                        uid: user.uid, name: "Elidio Junior", email: user.email, role: 'professor'
+                         uid: user.uid, name: "Elidio Junior", email: user.email, role: 'professor'
                     });
-                    userDoc = await getDoc(doc(db, "users", user.uid));
+                     userDoc = await getDoc(doc(db, "users", user.uid));
                 }
 
                 if (userDoc.exists()) {
@@ -405,6 +514,7 @@
         });
         
         async function calculateFileHash(file) {
+            if (!file) return null;
             const buffer = await file.arrayBuffer();
             const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -428,45 +538,142 @@
                     listEl.innerHTML += `
                         <div class="bg-gray-700 p-3 rounded-lg flex justify-between items-center">
                             <span class="font-medium">${turma.name}</span>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-3">
                                 <span class="text-sm text-orange-400 font-semibold bg-gray-800 px-2 py-1 rounded">Código: ${turma.classCode}</span>
-                                <button class="copy-code-btn text-gray-400 hover:text-orange-500" data-code="${turma.classCode}"><i class="fas fa-copy"></i></button>
-                                <button class="view-students-btn text-gray-400 hover:text-orange-500" data-turma-id="${doc.id}" data-turma-name="${turma.name}"><i class="fas fa-user-friends"></i></button>
+                                <button class="copy-code-btn text-gray-400 hover:text-orange-500" title="Copiar código" data-code="${turma.classCode}"><i class="fas fa-copy"></i></button>
+                                <button class="view-students-btn text-gray-400 hover:text-orange-500" title="Ver alunos" data-turma-id="${doc.id}" data-turma-name="${turma.name}"><i class="fas fa-user-friends"></i></button>
+                                <button class="edit-turma-btn text-gray-400 hover:text-cyan-500" title="Editar turma" data-turma-id="${doc.id}" data-turma-name="${turma.name}"><i class="fas fa-pencil-alt"></i></button>
+                                <button class="delete-turma-btn text-gray-400 hover:text-red-500" title="Excluir turma" data-turma-id="${doc.id}"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </div>`;
                 });
-                document.querySelectorAll('.copy-code-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        navigator.clipboard.writeText(e.currentTarget.dataset.code);
-                        showNotification("Código copiado!");
-                    });
-                });
-                document.querySelectorAll('.view-students-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => viewStudentsInTurma(e.currentTarget.dataset.turmaId, e.currentTarget.dataset.turmaName));
-                });
+                // Attach event listeners
+                document.querySelectorAll('.copy-code-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                    navigator.clipboard.writeText(e.currentTarget.dataset.code);
+                    showNotification("Código copiado!");
+                }));
+                document.querySelectorAll('.view-students-btn').forEach(btn => btn.addEventListener('click', (e) => viewStudentsInTurma(e.currentTarget.dataset.turmaId, e.currentTarget.dataset.turmaName)));
+                document.querySelectorAll('.edit-turma-btn').forEach(btn => btn.addEventListener('click', (e) => showEditTurmaModal(e.currentTarget.dataset.turmaId, e.currentTarget.dataset.turmaName)));
+                document.querySelectorAll('.delete-turma-btn').forEach(btn => btn.addEventListener('click', (e) => confirmDeleteTurma(e.currentTarget.dataset.turmaId)));
+            }, (error) => {
+                console.error("Erro ao carregar turmas:", error);
+                showNotification("Erro ao carregar turmas.", true);
             });
             unsubscribeListeners.push(unsub);
         }
 
-        async function viewStudentsInTurma(turmaId, turmaName) {
+        function showEditTurmaModal(turmaId, currentName) {
+            const content = `
+                <form id="editTurmaForm">
+                    <div class="mb-4">
+                        <label for="editTurmaNameInput" class="block text-sm font-medium text-gray-300 mb-2">Novo nome da turma:</label>
+                        <input type="text" id="editTurmaNameInput" required class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white" value="${currentName}">
+                    </div>
+                    <button type="submit" class="w-full bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-cyan-700">Salvar Alterações</button>
+                </form>
+            `;
+            openGenericModal('Editar Turma', content);
+
+            document.getElementById('editTurmaForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newName = document.getElementById('editTurmaNameInput').value.trim();
+                if (newName && newName !== currentName) {
+                    const turmaRef = doc(db, "turmas", turmaId);
+                    await updateDoc(turmaRef, { name: newName });
+                    showNotification("Turma atualizada com sucesso!");
+                }
+                closeGenericModal();
+            });
+        }
+
+        function confirmDeleteTurma(turmaId) {
+            const modal = document.getElementById('confirmationModal');
+            modal.querySelector('#modalTitle').innerText = "Excluir Turma";
+            modal.querySelector('#modalMessage').innerText = "Atenção! Excluir esta turma irá remover TODAS as avaliações associadas e desvincular todos os alunos. Esta ação é irreversível.";
+            modal.classList.remove('hidden');
+
+            document.getElementById('modalConfirm').onclick = () => {
+                deleteTurma(turmaId);
+                modal.classList.add('hidden');
+            };
+        }
+
+        async function deleteTurma(turmaId) {
+            showView('loader');
+            try {
+                const batch = writeBatch(db);
+
+                // 1. Delete a turma
+                const turmaRef = doc(db, 'turmas', turmaId);
+                batch.delete(turmaRef);
+
+                // 2. Encontre e delete as avaliações associadas
+                const assessmentsQuery = query(collection(db, 'assessments'), where('turmaId', '==', turmaId), where('professorId', '==', currentUser.uid));
+                const assessmentsSnapshot = await getDocs(assessmentsQuery);
+                for (const assessmentDoc of assessmentsSnapshot.docs) {
+                    batch.delete(assessmentDoc.ref);
+                }
+
+                // 3. Desvincule os alunos
+                const studentsQuery = query(collection(db, 'users'), where('turmaId', '==', turmaId));
+                const studentsSnapshot = await getDocs(studentsQuery);
+                studentsSnapshot.forEach(studentDoc => {
+                    batch.update(studentDoc.ref, { turmaId: null, professorId: null });
+                });
+
+                await batch.commit();
+                showNotification("Turma e dados associados foram excluídos.");
+                loadProfessorTurmas();
+            } catch (error) {
+                console.error("Erro ao excluir turma:", error);
+                showNotification("Ocorreu um erro ao excluir a turma.", true);
+                loadProfessorTurmas();
+            }
+        }
+
+
+        function viewStudentsInTurma(turmaId, turmaName) {
             showView('studentListView');
             document.getElementById('studentListTitle').innerText = `Alunos em: ${turmaName}`;
             const contentEl = document.getElementById('studentListContent');
-            contentEl.innerHTML = '<div class="loader"></div>';
             
             const q = query(collection(db, "users"), where("turmaId", "==", turmaId));
-            const snapshot = await getDocs(q);
-            
-            if (snapshot.empty) {
-                contentEl.innerHTML = '<p class="text-gray-400">Nenhum aluno nesta turma.</p>'; return;
-            }
-            let html = '<ul class="space-y-2">';
-            snapshot.forEach(doc => {
-                const student = doc.data();
-                html += `<li class="bg-gray-700 p-3 rounded-md">${student.name} - ${student.email}</li>`;
+            const unsub = onSnapshot(q, (snapshot) => {
+                contentEl.innerHTML = '<div class="loader"></div>';
+                if (snapshot.empty) {
+                    contentEl.innerHTML = '<p class="text-gray-400">Nenhum aluno nesta turma.</p>'; return;
+                }
+                let html = '<ul class="space-y-2">';
+                snapshot.forEach(doc => {
+                    const student = doc.data();
+                    const isBlocked = student.isBlocked || false;
+                    html += `
+                        <li class="bg-gray-700 p-3 rounded-md flex justify-between items-center">
+                            <div>
+                                ${student.name} <span class="text-sm text-gray-400">${student.email}</span>
+                                ${isBlocked ? '<span class="ml-2 text-xs font-semibold bg-red-800 text-red-300 px-2 py-1 rounded-full">Bloqueado</span>' : ''}
+                            </div>
+                            <button data-student-id="${doc.id}" data-is-blocked="${isBlocked}" class="toggle-block-btn ${isBlocked ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-white text-xs font-bold py-1 px-3 rounded-full">
+                                ${isBlocked ? 'Desbloquear' : 'Bloquear'}
+                            </button>
+                        </li>`;
+                });
+                html += '</ul>';
+                contentEl.innerHTML = html;
+
+                document.querySelectorAll('.toggle-block-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const studentId = e.currentTarget.dataset.studentId;
+                        const isBlocked = e.currentTarget.dataset.isBlocked === 'true';
+                        await updateDoc(doc(db, 'users', studentId), { isBlocked: !isBlocked });
+                        showNotification(`Aluno ${!isBlocked ? 'bloqueado' : 'desbloqueado'} com sucesso.`);
+                    });
+                });
+            }, (error) => {
+                 console.error("Erro ao carregar alunos:", error);
+                 contentEl.innerHTML = `<p class="text-red-400">Erro ao carregar alunos. Verifique as permissões.</p>`;
             });
-            html += '</ul>';
-            contentEl.innerHTML = html;
+            unsubscribeListeners.push(unsub);
         }
 
         document.getElementById('createTurmaBtn').addEventListener('click', async () => {
@@ -516,6 +723,11 @@
         
         document.getElementById('showCreateAssessmentView').addEventListener('click', async () => {
             showView('createAssessmentView');
+            document.getElementById('assessmentTitle').value = '';
+            document.getElementById('imageUrl').value = '';
+            document.getElementById('pdfUrl').value = '';
+            document.getElementById('assessmentAttempts').value = '1';
+            document.getElementById('assessmentDeadline').value = '';
             document.getElementById('criteriaContainer').innerHTML = '';
             const turmaSelect = document.getElementById('assessmentTurma');
             turmaSelect.innerHTML = '<option>Carregando...</option>';
@@ -531,27 +743,27 @@
         document.getElementById('addCriterionBtn').addEventListener('click', () => {
             const container = document.getElementById('criteriaContainer');
             const newCriterion = document.createElement('div');
-            newCriterion.className = 'criterion-card relative bg-gray-700 p-4 rounded-lg border border-gray-600 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end';
+            newCriterion.className = 'criterion-card relative bg-gray-700 p-4 rounded-lg border border-gray-600 grid grid-cols-1 md:grid-cols-4 gap-4 items-end';
             newCriterion.innerHTML = `
-                <div class="lg:col-span-1">
-                    <label class="text-sm font-medium text-gray-300">Rótulo (Ex: Massa)</label>
+                <div class="md:col-span-1">
+                    <label class="text-sm font-medium text-gray-300">Rótulo</label>
                     <input type="text" name="label" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
                 </div>
-                <div class="lg:col-span-1">
+                <div class="md:col-span-1">
                     <label class="text-sm font-medium text-gray-300">Tipo de Resposta</label>
                     <select name="type" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
                         <option value="numeric">Número</option><option value="text">Texto</option>
                     </select>
                 </div>
-                <div class="lg:col-span-1">
+                <div class="md:col-span-1">
                     <label class="text-sm font-medium text-gray-300">Resposta Correta</label>
                     <input type="text" name="correctAnswer" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
                 </div>
-                 <div class="lg:col-span-1">
+                 <div class="md:col-span-1">
                     <label class="text-sm font-medium text-gray-300 criterion-weight-label">Peso (%)</label>
                     <input type="number" name="weight" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white" value="0" step="0.1">
                 </div>
-                <div name="toleranceSection" class="lg:col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-600 mt-2">
+                <div name="toleranceSection" class="md:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-600 mt-2">
                     <div>
                         <label class="text-sm font-medium text-gray-300">Tipo de Tolerância</label>
                         <select name="toleranceType" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
@@ -580,63 +792,98 @@
             updateWeightLabels();
         });
 
+        document.getElementById('gradingType').addEventListener('change', updateWeightLabels);
+        document.getElementById('assessmentMaxGrade').addEventListener('input', calculateTotalWeight);
+
+        // --- CORREÇÃO: Função de Salvar com Validação Melhorada ---
         document.getElementById('saveAssessment').addEventListener('click', async () => {
-            const title = document.getElementById('assessmentTitle').value;
-            const imageUrl = document.getElementById('imageUrl').value;
-            const pdfUrl = document.getElementById('pdfUrl').value;
+            // 1. Coleta de dados
+            const title = document.getElementById('assessmentTitle').value.trim();
+            const imageUrl = document.getElementById('imageUrl').value.trim();
+            const pdfUrl = document.getElementById('pdfUrl').value.trim();
             const attemptsAllowed = parseInt(document.getElementById('assessmentAttempts').value, 10);
             const deadlineValue = document.getElementById('assessmentDeadline').value;
             const maxGrade = parseFloat(document.getElementById('assessmentMaxGrade').value);
             const gradingType = document.getElementById('gradingType').value;
+            const fileRequired = document.getElementById('assessmentFileRequired').checked;
             const turmaSelect = document.getElementById('assessmentTurma');
             const turmaId = turmaSelect.value;
-            const turmaName = turmaSelect.options[turmaSelect.selectedIndex]?.dataset.name;
+            const turmaName = turmaSelect.options[turmaSelect.selectedIndex]?.dataset.name || 'Turma Inválida';
 
-            if (!title || !turmaId || !attemptsAllowed || !deadlineValue || isNaN(maxGrade)) { 
-                showNotification("Preencha todos os campos, incluindo a nota máxima e data limite.", true); return; 
+            // 2. Validação granular dos campos principais
+            if (!title) { showNotification("O título da avaliação é obrigatório.", true); return; }
+            if (!turmaId) { showNotification("É necessário selecionar uma turma.", true); return; }
+            if (!deadlineValue) { showNotification("A data limite para resposta é obrigatória.", true); return; }
+            if (isNaN(maxGrade) || maxGrade <= 0) { showNotification("A nota máxima deve ser um número maior que zero.", true); return; }
+            if (isNaN(attemptsAllowed) || attemptsAllowed < 1) { showNotification("O número de tentativas deve ser pelo menos 1.", true); return; }
+
+            let deadline;
+            try {
+                const date = new Date(deadlineValue);
+                if (isNaN(date.getTime())) throw new Error("Invalid date");
+                deadline = Timestamp.fromDate(date);
+            } catch (error) {
+                showNotification("A data limite fornecida é inválida.", true);
+                return;
             }
-            
-            const deadline = Timestamp.fromDate(new Date(deadlineValue));
+
+            // 3. Validação dos critérios
             const criteria = [];
             const criteriaElements = document.querySelectorAll('.criterion-card');
-            if (criteriaElements.length === 0) { showNotification("Adicione pelo menos um critério.", true); return; }
+            if (criteriaElements.length === 0) {
+                showNotification("Adicione pelo menos um critério de avaliação.", true);
+                return;
+            }
 
-            let valid = true;
             let totalWeight = 0;
-            criteriaElements.forEach(el => {
-                const label = el.querySelector('input[name="label"]').value;
+            for (let i = 0; i < criteriaElements.length; i++) {
+                const el = criteriaElements[i];
+                const label = el.querySelector('input[name="label"]').value.trim();
                 const type = el.querySelector('select[name="type"]').value;
-                const correctAnswer = el.querySelector('input[name="correctAnswer"]').value;
+                const correctAnswerStr = el.querySelector('input[name="correctAnswer"]').value.trim();
                 const weight = parseFloat(el.querySelector('input[name="weight"]').value);
 
-                if (!label || !correctAnswer || isNaN(weight)) valid = false;
-
-                const criterion = { label, type, correctAnswer, weight };
+                if (!label) { showNotification(`O Rótulo do critério ${i + 1} não pode estar vazio.`, true); return; }
+                if (!correctAnswerStr) { showNotification(`A Resposta Correta do critério '${label}' não pode estar vazia.`, true); return; }
+                if (isNaN(weight)) { showNotification(`O Peso/Pontos do critério '${label}' deve ser um número válido.`, true); return; }
+                
+                const criterion = { label, type, weight };
                 if (type === 'numeric') {
-                    criterion.correctAnswer = parseFloat(correctAnswer);
+                    criterion.correctAnswer = parseFloat(correctAnswerStr.replace(',', '.')); // Aceita vírgula
                     criterion.toleranceType = el.querySelector('select[name="toleranceType"]').value;
                     criterion.toleranceValue = parseFloat(el.querySelector('input[name="toleranceValue"]').value);
-                    if (isNaN(criterion.correctAnswer) || isNaN(criterion.toleranceValue)) valid = false;
+                    if (isNaN(criterion.correctAnswer) || isNaN(criterion.toleranceValue)) {
+                        showNotification(`Valores numéricos inválidos no critério '${label}'.`, true); return;
+                    }
+                } else {
+                     criterion.correctAnswer = correctAnswerStr;
                 }
                 criteria.push(criterion);
                 totalWeight += weight;
-            });
+            }
 
-            if(!valid) { showNotification("Preencha todos os campos dos critérios.", true); return; }
-
+            // 4. Validação da ponderação total
             if (gradingType === 'percentage' && Math.abs(totalWeight - 100) > 0.01) {
-                showNotification('A soma das porcentagens dos critérios deve ser exatamente 100%.', true); return;
+                showNotification(`A soma das porcentagens dos critérios deve ser 100%, mas é ${totalWeight.toFixed(1)}%.`, true); return;
+            }
+            if (gradingType === 'points' && Math.abs(totalWeight - maxGrade) > 0.01) {
+                showNotification(`A soma dos pontos dos critérios (${totalWeight.toFixed(1)}) deve ser igual à Nota Máxima (${maxGrade}).`, true); return;
             }
             
+            // 5. Envio para o Firestore
             try {
                 showView('loader');
                 await addDoc(collection(db, "assessments"), {
-                    title, imageUrl, pdfUrl, turmaId, turmaName, criteria, attemptsAllowed, deadline, maxGrade, gradingType,
-                    professorId: currentUser.uid, createdAt: new Date(), resultsRevealed: false
+                    title, imageUrl, pdfUrl, turmaId, turmaName, criteria, attemptsAllowed, deadline, maxGrade, gradingType, fileRequired,
+                    professorId: currentUser.uid, createdAt: Timestamp.now(), resultsRevealed: false
                 });
-                showNotification("Avaliação criada!");
+                showNotification("Avaliação criada com sucesso!");
                 loadProfessorDashboard();
-            } catch(e) { showNotification("Erro ao salvar.", true); console.error(e); }
+            } catch(e) {
+                showNotification("Erro ao salvar a avaliação no banco de dados.", true);
+                console.error("Firestore save error:", e);
+                loadProfessorDashboard(); // Volta ao dashboard em caso de erro
+            }
         });
         
         let confirmAction = null;
@@ -644,14 +891,17 @@
         document.getElementById('modalCancel').addEventListener('click', () => modal.classList.add('hidden'));
         document.getElementById('modalConfirm').addEventListener('click', () => {
             if(confirmAction) confirmAction();
-            modal.classList.add('hidden');
         });
 
         function confirmDeleteAssessment(assessmentId) {
             modal.querySelector('#modalTitle').innerText = "Excluir Avaliação";
             modal.querySelector('#modalMessage').innerText = "Tem certeza que deseja excluir esta avaliação? Todas as respostas dos alunos serão perdidas permanentemente.";
-            confirmAction = () => deleteAssessment(assessmentId);
             modal.classList.remove('hidden');
+
+            document.getElementById('modalConfirm').onclick = () => {
+                deleteAssessment(assessmentId);
+                modal.classList.add('hidden');
+            };
         }
 
         async function deleteAssessment(assessmentId) {
@@ -682,6 +932,11 @@
 
             const assessmentRef = doc(db, "assessments", assessmentId);
             const assessmentSnap = await getDoc(assessmentRef);
+            if (!assessmentSnap.exists()) {
+                showNotification("Avaliação não encontrada.", true);
+                loadProfessorDashboard();
+                return;
+            }
             const assessmentData = assessmentSnap.data();
             document.getElementById('resultsTitle').innerText = `Resultados: ${assessmentData.title}`;
 
@@ -698,16 +953,16 @@
                 });
                 
                 let html = `<div class="overflow-x-auto"><table class="w-full text-left table-auto"><thead><tr class="bg-gray-700">
-                           <th class="p-3">Aluno</th>`;
+                                <th class="p-3">Aluno</th>`;
                 assessmentData.criteria.forEach(c => html += `<th class="p-3">${c.label} (${c.weight}${assessmentData.gradingType === 'percentage' ? '%' : 'pts'})</th>`);
                 html += `<th class="p-3">Hash do Arquivo</th><th class="p-3 text-center">Nota</th></tr></thead><tbody>`;
 
                 if (submissions.length === 0) {
                     html += `<tr><td colspan="${assessmentData.criteria.length + 3}" class="text-center p-4 text-gray-400">Nenhuma resposta enviada.</td></tr>`;
                 } else {
-                    submissions.forEach(sub => {
+                    submissions.sort((a, b) => a.studentName.localeCompare(b.studentName)).forEach(sub => {
                         const isCopied = sub.fileHash && hashCounts[sub.fileHash] > 1;
-                        html += `<tr class="border-b border-gray-700"><td class="p-3 font-medium">${sub.studentName} ${isCopied ? `<i class="fas fa-exclamation-triangle text-yellow-400 ml-2" title="Possível cópia detectada: ${sub.fileHash}"></i>` : ''}</td>`;
+                        html += `<tr class="border-b border-gray-700 hover:bg-gray-700/50"><td class="p-3 font-medium">${sub.studentName} ${isCopied ? `<i class="fas fa-exclamation-triangle text-yellow-400 ml-2" title="Possível cópia detectada: ${sub.fileHash}"></i>` : ''}</td>`;
                         
                         let totalScore = 0;
                         assessmentData.criteria.forEach((criterion, index) => {
@@ -737,7 +992,7 @@
 
                         const fileHashShort = sub.fileHash ? sub.fileHash.substring(0, 10) + '...' : 'N/A';
                         html += `<td class="p-3 font-mono text-sm" title="${sub.fileHash || ''}">${fileHashShort}</td>
-                                 <td class="p-3 text-center font-bold text-green-400">${finalScoreDisplay}</td></tr>`;
+                                     <td class="p-3 text-center font-bold text-green-400">${finalScoreDisplay}</td></tr>`;
                     });
                 }
                 
@@ -755,17 +1010,17 @@
                 contentEl.innerHTML = html;
                 if(!assessmentData.resultsRevealed) {
                      document.getElementById('revealResultsBtn').addEventListener('click', async () => {
-                         await updateDoc(assessmentRef, { resultsRevealed: true });
-                         showNotification("Resultados divulgados para todos os alunos!");
-                    });
+                          await updateDoc(assessmentRef, { resultsRevealed: true });
+                          showNotification("Resultados divulgados para todos os alunos!");
+                     });
                 }
             }, (error) => {
                 console.error("Firebase Snapshot Error:", error);
                 if (error.code === 'permission-denied') {
                     contentEl.innerHTML = `<div class="text-center p-4 bg-red-900 border-l-4 border-red-500 text-red-300 rounded-lg">
                                                 <h3 class="font-bold">Erro de Permissão</h3>
-                                                <p>O acesso aos dados foi negado. Isso geralmente ocorre porque as Regras de Segurança do Firestore estão incorretas ou desatualizadas. Por favor, atualize as regras no seu Console do Firebase.</p>
-                                            </div>`;
+                                                <p>O acesso aos dados foi negado. Isso geralmente ocorre porque as Regras de Segurança do Firestore estão incorretas. Por favor, atualize as regras no seu Console do Firebase como instruído.</p>
+                                           </div>`;
                     showNotification("Acesso negado. Verifique as regras de segurança.", true);
                 } else {
                     contentEl.innerHTML = `<p class="text-center text-red-400">Ocorreu um erro ao carregar os resultados.</p>`;
@@ -797,6 +1052,14 @@
         }
         
         async function loadAlunoDashboard() {
+            if (currentUser.isBlocked) {
+                showView('alunoDashboardView');
+                document.getElementById('abertas').innerHTML = `<p class="text-yellow-400 col-span-full text-center">Sua conta está bloqueada. Contate o professor.</p>`;
+                document.getElementById('respondidas').innerHTML = '';
+                document.getElementById('perdidas').innerHTML = '';
+                return;
+            }
+
             showView('alunoDashboardView');
             setupTabs();
 
@@ -859,8 +1122,8 @@
                 });
             } catch(error) {
                  console.error("Erro ao carregar painel do aluno:", error);
-                showNotification("Erro ao carregar avaliações. Verifique as permissões.", true);
-                abertasEl.innerHTML = respondidasEl.innerHTML = perdidasEl.innerHTML = `<p class="text-red-400 col-span-full text-center">Ocorreu um erro ao carregar os dados. (${error.code})</p>`;
+                 showNotification("Erro ao carregar avaliações. Verifique as permissões.", true);
+                 abertasEl.innerHTML = respondidasEl.innerHTML = perdidasEl.innerHTML = `<p class="text-red-400 col-span-full text-center">Ocorreu um erro ao carregar os dados. (${error.code})</p>`;
             }
         }
 
@@ -930,6 +1193,10 @@
             } else if (attemptsMade >= attemptsAllowed) {
                  htmlContent = `<div class="text-center"><i class="fas fa-stop-circle text-5xl text-red-500 mb-4"></i><h3 class="text-xl font-bold mb-2">Você atingiu o limite de tentativas!</h3><p class="text-gray-400">Aguarde o professor revelar os resultados. Tentativas feitas: ${attemptsMade}/${attemptsAllowed}</p></div>`;
             } else {
+                const fileRequired = assessmentData.fileRequired ?? true;
+                const fileInputRequiredAttr = fileRequired ? 'required' : '';
+                const fileInputLabel = fileRequired ? 'Arquivo da Peça (.sldprt, .sldasm) (Obrigatório)' : 'Arquivo da Peça (.sldprt, .sldasm) (Opcional)';
+
                  htmlContent = `
                     <div class="flex flex-col md:flex-row gap-8">
                         <div class="md:w-1/2">
@@ -940,8 +1207,8 @@
                         </div>
                         <form id="submissionForm" class="md:w-1/2 space-y-4">
                             <h3 class="font-bold">Insira os valores encontrados:</h3>
-                            ${assessmentData.criteria.map((c, i) => `<div><label class="block text-sm font-medium text-gray-300">${c.label}</label><input type="${c.type === 'numeric' ? 'number' : 'text'}" data-index="${i}" required class="mt-1 w-full px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white"></div>`).join('')}
-                            <div><label class="block text-sm font-medium text-gray-300">Arquivo da Peça (.sldprt, .sldasm)</label><input type="file" id="studentFile" required accept=".sldprt,.sldasm" class="mt-1 w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700"></div>
+                            ${assessmentData.criteria.map((c, i) => `<div><label class="block text-sm font-medium text-gray-300">${c.label}</label><input type="${c.type === 'numeric' ? 'number' : 'text'}" step="any" data-index="${i}" required class="mt-1 w-full px-3 py-2 border bg-gray-700 border-gray-600 rounded-lg text-white"></div>`).join('')}
+                            <div><label class="block text-sm font-medium text-gray-300">${fileInputLabel}</label><input type="file" id="studentFile" ${fileInputRequiredAttr} accept=".sldprt,.sldasm" class="mt-1 w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700"></div>
                             <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition">Enviar Resposta</button>
                         </form>
                     </div>`;
@@ -953,9 +1220,11 @@
                 showView('loader');
                 try {
                     const answers = Array.from(e.target.querySelectorAll('input[data-index]')).map(input => input.value);
-                    const file = document.getElementById('studentFile').files[0];
-                    if (answers.some(a => !a) || !file) {
-                        showNotification("Preencha todos os campos e anexe o arquivo.", true);
+                    const fileInput = document.getElementById('studentFile');
+                    const file = fileInput.files[0];
+                    
+                    if (answers.some(a => !a) || (assessmentData.fileRequired && !file)) {
+                        showNotification("Preencha todos os campos e anexe o arquivo obrigatório.", true);
                         takeAssessment(assessmentId, submissionId);
                         return; 
                     }
@@ -1034,7 +1303,8 @@
             };
 
             setInterval(main, 500);
-            setInterval(checkDebugger, 1000);
+            // Desativando o check com debugger pois pode ser muito intrusivo
+            // setInterval(checkDebugger, 1000); 
 
             window.addEventListener('devtoolschange', event => {
                 if(event.detail.isOpen){
