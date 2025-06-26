@@ -341,6 +341,7 @@
                 return assets;
             } catch (error) {
                 showError("Erro ao carregar os ativos.");
+                console.error("Fetch assets error:", error);
                 return { machines: [], parts: [], tools: [] };
             }
         }
@@ -392,7 +393,7 @@
                 ui.userFormsList.innerHTML = snapshot.empty ? '<p class="text-gray-500">Nenhuma ficha encontrada.</p>' : '';
                 sortedDocs.forEach(doc => {
                     const form = doc.data();
-                    if (form.isArchived) return; // Não mostra fichas arquivadas para o usuário
+                    if (form.isArchived) return;
                     const latest = form.versions['v' + form.latestVersion];
                     const card = document.createElement('div');
                     
@@ -445,6 +446,7 @@
                 showSuccess(`Status da ficha atualizado para "${newStatus}"!`);
             } catch (e) {
                 showError("Erro ao atualizar o status da ficha.");
+                console.error("Update status error:", e);
             }
         }
         
@@ -485,7 +487,25 @@
 
         function loadUserAssets(assetType) {
             const container = ui.userAssetContent;
-            container.innerHTML = `<div class="mb-4"><input type="search" id="user-asset-search" placeholder="Buscar..." class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md"></div><div id="user-asset-list-container"></div>`;
+            const assetNameSingular = assetType.slice(0, -1);
+            const assetNameCapitalized = assetNameSingular.charAt(0).toUpperCase() + assetNameSingular.slice(1);
+
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-100">Gerenciar ${assetNameCapitalized}s</h3>
+                    <button id="user-add-asset-button" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> <span>Adicionar</span>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <input type="search" id="user-asset-search" placeholder="Buscar..." class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md">
+                </div>
+                <div id="user-asset-list-container"></div>
+            `;
+
+            document.getElementById('user-add-asset-button').onclick = () => manageAsset(assetNameSingular, null, false);
+            createIconsSafely();
+
             const listContainer = document.getElementById('user-asset-list-container');
             const searchInput = document.getElementById('user-asset-search');
             
@@ -494,12 +514,12 @@
             const q = collection(db, `artifacts/${appId}/public/data/${assetType}`);
             const unsub = onSnapshot(q, (snapshot) => {
                 allDocs = snapshot.docs;
-                renderFilteredAssets(allDocs, listContainer, assetType.slice(0,-1), false, searchInput.value);
+                renderFilteredAssets(allDocs, listContainer, assetNameSingular, false, searchInput.value);
             });
             unsubscribes.push(unsub);
             
             searchInput.addEventListener('input', (e) => {
-                 renderFilteredAssets(allDocs, listContainer, assetType.slice(0,-1), false, e.target.value);
+                renderFilteredAssets(allDocs, listContainer, assetNameSingular, false, e.target.value);
             });
         }
 
@@ -565,10 +585,10 @@
                      const status = form.status || 'Aguardando';
                      const style = statusStyles[status] || statusStyles.default;
                      recentOrdersContainer.innerHTML += `
-                        <div class="p-2 rounded-md border-l-4 ${style.split(' ')[2]} bg-gray-800/50">
-                            <p class="font-semibold text-gray-200">${latest.tag} - <span class="font-normal text-gray-400">${latest.motivo || 'Motivo não especificado'}</span></p>
-                            <p class="text-xs text-gray-500">Por: ${form.creatorName} - Status: <span class="font-semibold" style="color:${style.split(' ')[1].replace('text-','')};">${status}</span></p>
-                        </div>
+                         <div class="p-2 rounded-md border-l-4 ${style.split(' ')[2]} bg-gray-800/50">
+                             <p class="font-semibold text-gray-200">${latest.tag} - <span class="font-normal text-gray-400">${latest.motivo || 'Motivo não especificado'}</span></p>
+                             <p class="text-xs text-gray-500">Por: ${form.creatorName} - Status: <span class="font-semibold" style="color:${style.split(' ')[1].replace('text-','')};">${status}</span></p>
+                         </div>
                      `;
                  });
 
@@ -640,30 +660,21 @@
                 filteredOrders.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).forEach(form => {
                     const latest = form.versions['v' + form.latestVersion];
                     const card = document.createElement('div');
-                    card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-3";
+                    card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
                     
-                    let buttonsHTML = `
-                        <button title="Ver Detalhes" class="action-button view-details-button p-2 rounded-full text-gray-300 bg-gray-700 hover:bg-gray-600 transition-all duration-200"><i data-lucide="eye" class="w-4 h-4"></i></button>
-                        <button title="Editar Ficha" class="action-button edit-order-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                    `;
-
+                    let buttons = `<button title="Ver Detalhes" class="action-button view-details-button p-2 rounded-full text-gray-300 bg-gray-700 hover:bg-gray-600 transition-all duration-200"><i data-lucide="eye" class="w-4 h-4"></i></button>`;
                     if (form.status === 'Finalizada' && !form.isArchived) {
-                        buttonsHTML += `<button title="Arquivar Ficha" class="action-button archive-order-button p-2 rounded-full text-green-400 bg-gray-700 hover:bg-green-500 hover:text-white transition-all duration-200"><i data-lucide="archive" class="w-4 h-4"></i></button>`;
+                        buttons += `<button title="Arquivar Ficha" class="action-button archive-order-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="archive" class="w-4 h-4"></i></button>`;
                     }
-                    
-                    buttonsHTML += `<button title="Excluir Ficha" class="action-button delete-order-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
 
                     card.innerHTML = `
                         <div class="flex-grow">
                             <p class="font-semibold text-orange-500">${latest.tag || 'Sem TAG'} - <span class="font-normal text-gray-300">${latest.equipamento || 'Sem Descrição'}</span></p>
                             <p class="text-sm text-gray-400">Por: ${form.creatorName} | Status: <span class="font-semibold ${statusStyles[form.status]?.split(' ')[1] || ''}">${form.status}</span></p>
                         </div>
-                        <div class="flex items-center gap-2 self-end md:self-center">${buttonsHTML}</div>`;
+                        <div class="flex items-center gap-2">${buttons}</div>`;
                     
                     card.querySelector('.view-details-button').onclick = () => viewFormDetails(form.id);
-                    card.querySelector('.edit-order-button').onclick = () => editMaintenanceForm(form.id);
-                    card.querySelector('.delete-order-button').onclick = () => deleteOrder(form.id);
-                    
                     if(card.querySelector('.archive-order-button')) {
                         card.querySelector('.archive-order-button').onclick = () => archiveOrder(form.id);
                     }
@@ -682,21 +693,6 @@
 
             toggle.addEventListener('change', renderOrders);
         }
-        
-        async function deleteOrder(formId) {
-             showConfirmationModal(
-                'Excluir Ficha',
-                'Tem certeza que deseja EXCLUIR PERMANENTEMENTE esta ficha? Todos os seus dados e versões serão perdidos.',
-                async () => {
-                     try {
-                        await deleteDoc(doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId));
-                        showSuccess('Ficha excluída com sucesso!');
-                    } catch (e) {
-                        showError('Erro ao excluir a ficha.');
-                    }
-                }
-            );
-        }
 
         async function archiveOrder(formId) {
              showConfirmationModal(
@@ -709,34 +705,22 @@
                         showSuccess('Ficha arquivada com sucesso!');
                     } catch (e) {
                         showError('Erro ao arquivar a ficha.');
+                        console.error("Archive error:", e);
                     }
                 }
             );
         }
 
         function loadAdminUsers(container) {
-            container.innerHTML = `
-                <div class="mb-4">
-                    <input type="search" id="search-users" placeholder="Buscar por nome ou e-mail..." class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md">
-                </div>
-                <div id="admin-users-list" class="space-y-3"></div>
-            `;
-
-            const listContainer = document.getElementById('admin-users-list');
-            const searchInput = document.getElementById('search-users');
-            let allUsers = [];
-
-            const renderUsers = () => {
-                const filter = searchInput.value.toLowerCase();
-                const filteredUsers = allUsers.filter(user => {
-                    if (user.id === currentUserData.uid) return false;
-                    if (!filter) return true;
-                    return (user.name?.toLowerCase() || '').includes(filter) || (user.email?.toLowerCase() || '').includes(filter);
-                });
-
-                listContainer.innerHTML = filteredUsers.length === 0 ? '<p class="text-gray-500">Nenhum usuário encontrado.</p>' : '';
-                
-                filteredUsers.forEach(user => {
+            const q = collection(db, 'users');
+            const unsub = onSnapshot(q, (snapshot) => {
+                container.innerHTML = snapshot.empty ? '<p class="text-gray-500">Nenhum usuário encontrado.</p>' : '<div class="space-y-3"></div>';
+                if(snapshot.empty) return;
+                const list = container.querySelector('.space-y-3');
+                snapshot.forEach(doc => {
+                    const user = { id: doc.id, ...doc.data() };
+                    if (user.id === currentUserData.uid) return;
+                    
                     const p = user.permissions || {};
                     let permissionsHTML = [
                         p.canCreateMachines ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400"><i data-lucide="cpu" class="w-3 h-3"></i>Máquinas</span>` : '',
@@ -759,26 +743,18 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
-                           <button title="Gerenciar Permissões" class="action-button edit-user-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                           <button title="Gerenciar Permissões" class="action-button edit-user-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="sliders-horizontal" class="w-4 h-4"></i></button>
                            <button title="Excluir Usuário" class="action-button delete-user-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>
                     `;
                     card.querySelector('.edit-user-button').onclick = () => manageUserPermissions(user);
                     card.querySelector('.delete-user-button').onclick = () => deleteUser(user.id, user.name);
-                    listContainer.appendChild(card);
+                    list.appendChild(card);
                 });
                 createIconsSafely();
-            };
-
-            const q = collection(db, 'users');
-            const unsub = onSnapshot(q, (snapshot) => {
-                allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderUsers();
             });
             unsubscribes.push(unsub);
-            searchInput.addEventListener('input', renderUsers);
         }
-
 
         async function deleteUser(userId, userName) {
             showConfirmationModal(
@@ -786,10 +762,13 @@
                 `Tem certeza que deseja EXCLUIR PERMANENTEMENTE o usuário "${userName}"? Esta ação não pode ser desfeita.`,
                 async () => {
                     try {
+                        // Note: This does not delete the Firebase Auth user, only the Firestore document.
+                        // Deleting the auth user requires Admin SDK on a backend.
                         await deleteDoc(doc(db, 'users', userId));
                         showSuccess(`Usuário "${userName}" excluído.`);
                     } catch (e) {
                         showError("Erro ao excluir o documento do usuário.");
+                        console.error("Delete user error:", e);
                     }
                 }
             );
@@ -816,7 +795,10 @@
                     await updateDoc(userDocRef, { role: newRole, permissions: newPermissions });
                     showSuccess("Permissões atualizadas com sucesso!");
                     closeModal();
-                } catch(e) { showError("Erro ao atualizar permissões."); }
+                } catch(e) { 
+                    showError("Erro ao atualizar permissões.");
+                    console.error("Update permissions error:", e);
+                }
             };
         }
         
@@ -873,14 +855,31 @@
             }
             const item = document.createElement('div');
             item.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
-            item.innerHTML = `
-                <div class="flex-grow">${content}</div> 
-                ${isAdmin ? `<div class="flex items-center gap-3">
-                           <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                           <button title="Excluir" class="action-button delete-asset-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                        </div>` : ''}`;
-            if(isAdmin) {
-                item.querySelector('.edit-asset-button').onclick = () => manageAsset(type, id, true);
+
+            const assetTypePlural = `${type}s`;
+            const permKey = `canCreate${assetTypePlural.charAt(0).toUpperCase() + assetTypePlural.slice(1)}`;
+            const canUserEdit = currentUserData && currentUserData.permissions && currentUserData.permissions[permKey];
+
+            let buttonsHTML = '';
+            if (isAdmin) {
+                buttonsHTML = `
+                    <div class="flex items-center gap-3">
+                        <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                        <button title="Excluir" class="action-button delete-asset-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>`;
+            } else if (canUserEdit) {
+                 buttonsHTML = `
+                    <div class="flex items-center gap-3">
+                        <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                    </div>`;
+            }
+
+            item.innerHTML = `<div class="flex-grow">${content}</div> ${buttonsHTML}`;
+
+            if (isAdmin || canUserEdit) {
+                item.querySelector('.edit-asset-button').onclick = () => manageAsset(type, id, isAdmin);
+            }
+            if (isAdmin) {
                 item.querySelector('.delete-asset-button').onclick = () => deleteAsset(`${type}s`, id);
             }
             return item;
@@ -942,6 +941,7 @@
                         showSuccess("Item excluído com sucesso.");
                     } catch(e) {
                         showError("Falha ao excluir o item.");
+                        console.error("Delete asset error:", e);
                     }
                 }
             );
@@ -958,6 +958,7 @@
                 attachFormListeners(assets);
             } catch(e) {
                 showError("Erro ao carregar dados do formulário.");
+                console.error("New form error:", e);
             }
         });
 
@@ -977,6 +978,7 @@
                 } else showError("Ficha não encontrada.");
             } catch (e) {
                 showError("Erro ao carregar dados do formulário.");
+                console.error("Edit form error:", e);
             }
         }
 
