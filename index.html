@@ -47,8 +47,8 @@
             background-color: #374151; /* gray-700 */
             cursor: not-allowed;
         }
-        /* Para garantir que o clique no ícone seja capturado pelo botão pai */
-        .status-button i, .edit-user-form-button i, .edit-asset-button i, .delete-asset-button i {
+        /* Garante que o clique no ícone seja capturado pelo botão pai */
+        .action-button i {
              pointer-events: none;
         }
     </style>
@@ -157,46 +157,16 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, addDoc, onSnapshot, collection, updateDoc, deleteDoc, query, where, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // =================================================================================
-        // ✅ CONFIGURAÇÃO DO FIREBASE CORRIGIDA E INSERIDA
-        // =================================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyBJOANW80V8EyUQ3LbNqwJ8-91DfIp5ho8",
             authDomain: "gerenciadorturma.firebaseapp.com",
             projectId: "gerenciadorturma",
-            storageBucket: "gerenciadorturma.appspot.com", // CORRIGIDO
+            storageBucket: "gerenciadorturma.appspot.com",
             messagingSenderId: "610656492633",
             appId: "1:610656492633:web:32a0451c02048b6b1fe548",
             measurementId: "G-5JZXJSMGGL"
         };
         
-        // =================================================================================
-        // ⚠️ AÇÃO NECESSÁRIA: CLOUD FUNCTION PARA EXCLUIR USUÁRIOS ⚠️
-        // Lembre-se, para a exclusão de usuários funcionar 100%, siga estes passos:
-        // 1. Instale o Firebase CLI: `npm install -g firebase-tools`
-        // 2. No seu terminal, navegue para a pasta do seu projeto e rode: `firebase init functions`
-        // 3. Adicione o seguinte código ao arquivo `index.js` na pasta `functions`:
-        /*
-            const functions = require("firebase-functions");
-            const admin = require("firebase-admin");
-            admin.initializeApp();
-
-            exports.onUserDeleted = functions.firestore
-              .document("users/{userId}")
-              .onDelete(async (snap, context) => {
-                const userId = context.params.userId;
-                console.log(`Deletando conta de autenticação para o UID: ${userId}`);
-                try {
-                  await admin.auth().deleteUser(userId);
-                  console.log(`Conta de autenticação para o UID: ${userId} foi deletada.`);
-                } catch (error) {
-                  console.error(`Erro ao deletar conta para UID: ${userId}`, error);
-                }
-              });
-        */
-        // 4. Implante a função com o comando: `firebase deploy --only functions`
-        // =================================================================================
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -386,7 +356,6 @@
             
             loadAdminContent('forms', 'Fichas de Manutenção', loadAdminForms);
             loadAdminContent('users', 'Gerenciar Usuários', loadAdminUsers);
-            // CORRIGIDO: Chamando a função correta 'loadAssetList'
             loadAdminContent('machines', 'Gerenciar Máquinas', (c) => loadAssetList(c, 'machines', true));
             loadAdminContent('tools', 'Gerenciar Ferramentas', (c) => loadAssetList(c, 'tools', true));
             loadAdminContent('parts', 'Gerenciar Peças', (c) => loadAssetList(c, 'parts', true));
@@ -424,13 +393,13 @@
                             <p class="text-sm text-gray-300">${latest.equipamento || 'Equipamento não descrito'} (OS: ${latest.ordemServico || 'N/A'})</p>
                             <p class="text-xs text-gray-500">Versão: V${form.latestVersion} | Criado por: ${form.creatorName}</p>
                         </div>
-                        <div class="flex flex-col md:flex-row items-center gap-2 self-end md:self-center">
-                             <div class="flex gap-1">
-                                 <button title="Aguardando" data-doc-id="${doc.id}" data-status="Aguardando" class="status-button p-2 rounded-md hover:bg-yellow-500/50 ${formStatus === 'Aguardando' ? 'bg-yellow-500/30' : ''}"><i data-lucide="pause-circle" class="w-4 h-4 text-yellow-400"></i></button>
-                                 <button title="Em Andamento" data-doc-id="${doc.id}" data-status="Em Andamento" class="status-button p-2 rounded-md hover:bg-blue-500/50 ${formStatus === 'Em Andamento' ? 'bg-blue-500/30' : ''}"><i data-lucide="play-circle" class="w-4 h-4 text-blue-400"></i></button>
-                                 <button title="Finalizada" data-doc-id="${doc.id}" data-status="Finalizada" class="status-button p-2 rounded-md hover:bg-green-500/50 ${formStatus === 'Finalizada' ? 'bg-green-500/30' : ''}"><i data-lucide="check-circle-2" class="w-4 h-4 text-green-400"></i></button>
-                             </div>
-                             <button class="edit-user-form-button bg-gray-700 text-white p-2 rounded-md hover:bg-gray-600"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                        <div class="flex items-center gap-3 self-end md:self-center">
+                            <div class="flex gap-2">
+                                <button title="Aguardando" data-doc-id="${doc.id}" data-status="Aguardando" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Aguardando' ? 'bg-yellow-500/30' : 'bg-gray-700/50 hover:bg-yellow-500/50'}"><i data-lucide="pause-circle" class="w-5 h-5 text-yellow-400"></i></button>
+                                <button title="Em Andamento" data-doc-id="${doc.id}" data-status="Em Andamento" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Em Andamento' ? 'bg-blue-500/30' : 'bg-gray-700/50 hover:bg-blue-500/50'}"><i data-lucide="play-circle" class="w-5 h-5 text-blue-400"></i></button>
+                                <button title="Finalizada" data-doc-id="${doc.id}" data-status="Finalizada" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Finalizada' ? 'bg-green-500/30' : 'bg-gray-700/50 hover:bg-green-500/50'}"><i data-lucide="check-circle-2" class="w-5 h-5 text-green-400"></i></button>
+                            </div>
+                            <button title="Editar Ficha" class="action-button edit-user-form-button p-2 rounded-full bg-gray-600 text-white hover:bg-gray-500 transition-all duration-200 hover:scale-110"><i data-lucide="edit" class="w-5 h-5"></i></button>
                         </div>
                     `;
                     card.querySelector('.edit-user-form-button').onclick = () => editMaintenanceForm(doc.id);
@@ -570,9 +539,9 @@
                             <p class="font-semibold text-gray-100">${user.name} <span class="text-xs ml-2 px-2 py-0.5 rounded-full ${user.role === 'admin' ? 'bg-orange-600' : 'bg-gray-600'}">${user.role}</span></p>
                             <p class="text-sm text-gray-400">${user.email}</p>
                         </div>
-                        <div class="flex items-center gap-2">
-                           <button class="edit-user-button p-2 text-blue-500 hover:bg-blue-900/50 rounded-md"><i data-lucide="edit"></i></button>
-                           <button class="delete-user-button p-2 text-red-500 hover:bg-red-900/50 rounded-md"><i data-lucide="trash-2"></i></button>
+                        <div class="flex items-center gap-3">
+                           <button title="Gerenciar Permissões" class="action-button edit-user-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                           <button title="Excluir Usuário" class="action-button delete-user-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>
                     `;
                     card.querySelector('.edit-user-button').onclick = () => manageUserPermissions(user);
@@ -647,7 +616,10 @@
             }
             const item = document.createElement('div');
             item.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
-            item.innerHTML = `<div>${content}</div> ${isAdmin ? `<div class="flex gap-2"><button class="edit-asset-button p-2 text-blue-500 hover:bg-blue-900/50 rounded-md"><i data-lucide="edit"></i></button><button class="delete-asset-button p-2 text-red-500 hover:bg-red-900/50 rounded-md"><i data-lucide="trash-2"></i></button></div>` : ''}`;
+            item.innerHTML = `<div>${content}</div> ${isAdmin ? `<div class="flex items-center gap-3">
+                           <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                           <button title="Excluir" class="action-button delete-asset-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>` : ''}`;
             if(isAdmin) {
                 item.querySelector('.edit-asset-button').onclick = () => manageAsset(type, id, true);
                 item.querySelector('.delete-asset-button').onclick = () => deleteAsset(`${type}s`, id);
