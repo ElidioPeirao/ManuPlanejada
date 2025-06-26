@@ -179,7 +179,7 @@
             </div>
 
             <div id="createAssessmentView" class="view">
-                 <h2 class="text-2xl font-bold mb-6">Criar Nova Avaliação</h2>
+                 <h2 id="createAssessmentTitle" class="text-2xl font-bold mb-6">Criar Nova Avaliação</h2>
                  <div class="bg-gray-800 p-8 rounded-xl shadow-lg">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                         <div>
@@ -237,7 +237,7 @@
                     <button id="addCriterionBtn" class="bg-gray-600 text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-500"><i class="fas fa-plus mr-2"></i>Adicionar Critério</button>
                     <div class="mt-8 flex justify-end gap-4">
                         <button id="cancelCreate" class="bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600">Cancelar</button>
-                        <button id="saveAssessment" class="bg-orange-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-orange-700">Salvar Avaliação</button>
+                        <button id="saveAssessment" class="bg-orange-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-orange-700">Salvar</button>
                     </div>
                  </div>
             </div>
@@ -301,6 +301,7 @@
         let currentUser = null;
         let unsubscribeListeners = [];
         let notificationTimeout;
+        let editingAssessmentId = null;
 
         // --- CONTROLE DE UI ---
         const views = document.querySelectorAll('.view');
@@ -685,32 +686,76 @@
             showNotification("Turma criada com sucesso!");
         });
 
-        function loadProfessorDashboard() {
+        async function loadProfessorDashboard() {
             showView('professorDashboardView');
+            const listEl = document.getElementById('assessmentList');
+            listEl.innerHTML = '<div class="loader col-span-full"></div>';
+
             const q = query(collection(db, "assessments"), where("professorId", "==", currentUser.uid));
-            const unsub = onSnapshot(q, (snapshot) => {
-                const listEl = document.getElementById('assessmentList');
-                listEl.innerHTML = snapshot.empty ? `<p class="text-gray-400 col-span-full text-center">Nenhuma avaliação criada.</p>` : '';
-                snapshot.forEach((doc) => {
-                    const assessment = doc.data();
+            const unsub = onSnapshot(q, async (snapshot) => {
+                if (snapshot.empty) {
+                    listEl.innerHTML = `<p class="text-gray-400 col-span-full text-center">Nenhuma avaliação criada.</p>`;
+                    return;
+                }
+
+                const dataPromises = snapshot.docs.map(async (doc) => {
+                    const assessment = { id: doc.id, ...doc.data() };
+
+                    const submissionsQuery = query(collection(db, 'assessments', assessment.id, 'submissions'));
+                    const submissionsSnapshot = await getDocs(submissionsQuery);
+                    const submissionCount = submissionsSnapshot.size;
+
+                    let studentCount = 0;
+                    if (assessment.turmaId) {
+                        const studentsQuery = query(collection(db, 'users'), where("turmaId", "==", assessment.turmaId));
+                        const studentsSnapshot = await getDocs(studentsQuery);
+                        studentCount = studentsSnapshot.size;
+                    }
+                    
+                    return { ...assessment, submissionCount, studentCount };
+                });
+
+                const assessmentsWithData = await Promise.all(dataPromises);
+
+                listEl.innerHTML = '';
+                assessmentsWithData.forEach((assessment) => {
+                    const progress = assessment.studentCount > 0 ? (assessment.submissionCount / assessment.studentCount) * 100 : 0;
+                    const progressColor = progress === 100 ? 'bg-green-600' : 'bg-orange-600';
+
                     listEl.innerHTML += `
-                        <div class="bg-gray-800 p-5 rounded-xl shadow-md flex flex-col">
-                            <div class="relative">
-                                <h3 class="font-bold text-lg text-white">${assessment.title}</h3>
-                                <p class="text-sm text-gray-400 mb-4">Turma: ${assessment.turmaName || 'N/A'}</p>
+                        <div class="bg-gray-800 p-5 rounded-xl shadow-md flex flex-col justify-between">
+                            <div>
+                                <div class="relative">
+                                    <h3 class="font-bold text-lg text-white mb-1">${assessment.title}</h3>
+                                    <p class="text-sm text-gray-400 mb-4">Turma: ${assessment.turmaName || 'N/A'}</p>
+                                    <div class="absolute top-0 right-0 flex gap-2">
+                                        <button data-id="${assessment.id}" class="edit-assessment-btn bg-cyan-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-cyan-700" title="Editar Avaliação">
+                                            <i class="fas fa-pencil-alt fa-sm"></i>
+                                        </button>
+                                        <button data-id="${assessment.id}" class="delete-assessment-btn bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-700" title="Excluir Avaliação">
+                                            <i class="fas fa-trash-alt fa-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
                                 <img src="${assessment.imageUrl}" alt="Imagem da peça" class="w-full h-40 object-cover rounded-lg mb-4" onerror="this.src='https://placehold.co/600x400/374151/4b5563?text=Imagem'">
-                                <button data-id="${doc.id}" class="delete-assessment-btn absolute top-0 right-0 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-700">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-sm font-medium text-gray-300">Progresso</span>
+                                        <span class="text-sm font-medium text-gray-400">${assessment.submissionCount} / ${assessment.studentCount} alunos</span>
+                                    </div>
+                                    <div class="w-full bg-gray-700 rounded-full h-2.5">
+                                        <div class="${progressColor} h-2.5 rounded-full" style="width: ${progress}%"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <button data-id="${doc.id}" class="view-results-btn w-full mt-auto bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition">
+                            <button data-id="${assessment.id}" class="view-results-btn w-full mt-4 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition">
                                 <i class="fas fa-chart-bar mr-2"></i>Ver Resultados
                             </button>
                         </div>`;
                 });
-                document.querySelectorAll('.view-results-btn').forEach(button => {
-                    button.addEventListener('click', (e) => viewSubmissions(e.currentTarget.dataset.id));
-                });
+
+                document.querySelectorAll('.view-results-btn').forEach(button => button.addEventListener('click', (e) => viewSubmissions(e.currentTarget.dataset.id)));
+                document.querySelectorAll('.edit-assessment-btn').forEach(button => button.addEventListener('click', (e) => showEditAssessmentView(e.currentTarget.dataset.id)));
                 document.querySelectorAll('.delete-assessment-btn').forEach(button => {
                     button.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -721,14 +766,65 @@
             unsubscribeListeners.push(unsub);
         }
         
-        document.getElementById('showCreateAssessmentView').addEventListener('click', async () => {
+        async function showEditAssessmentView(assessmentId) {
+            editingAssessmentId = assessmentId;
             showView('createAssessmentView');
+            const formTitle = document.getElementById('createAssessmentTitle');
+            const saveButton = document.getElementById('saveAssessment');
+            formTitle.innerText = "Editar Avaliação";
+            saveButton.innerText = "Salvar Alterações";
+
+            const assessmentDoc = await getDoc(doc(db, "assessments", assessmentId));
+            if (!assessmentDoc.exists()) {
+                showNotification("Avaliação não encontrada.", true);
+                loadProfessorDashboard();
+                return;
+            }
+            const data = assessmentDoc.data();
+
+            // Populate main fields
+            document.getElementById('assessmentTitle').value = data.title;
+            document.getElementById('imageUrl').value = data.imageUrl || '';
+            document.getElementById('pdfUrl').value = data.pdfUrl || '';
+            document.getElementById('assessmentAttempts').value = data.attemptsAllowed;
+            document.getElementById('assessmentMaxGrade').value = data.maxGrade;
+            document.getElementById('gradingType').value = data.gradingType;
+            document.getElementById('assessmentFileRequired').checked = data.fileRequired;
+            if (data.deadline && data.deadline.toDate) {
+                const localDate = new Date(data.deadline.toDate().getTime() - (data.deadline.toDate().getTimezoneOffset() * 60000)).toISOString().slice(0,16);
+                document.getElementById('assessmentDeadline').value = localDate;
+            }
+            
+            // Populate Turmas and select the correct one
+            const turmaSelect = document.getElementById('assessmentTurma');
+            const q = query(collection(db, "turmas"), where("professorId", "==", currentUser.uid));
+            const snapshot = await getDocs(q);
+            turmaSelect.innerHTML = snapshot.empty ? '<option value="">Crie uma turma primeiro</option>' : '';
+            snapshot.forEach(doc => {
+                turmaSelect.innerHTML += `<option value="${doc.id}" data-name="${doc.data().name}">${doc.data().name}</option>`;
+            });
+            turmaSelect.value = data.turmaId;
+
+            // Populate criteria
+            const criteriaContainer = document.getElementById('criteriaContainer');
+            criteriaContainer.innerHTML = '';
+            data.criteria.forEach(c => addCriterion(c));
+            calculateTotalWeight();
+        }
+
+        document.getElementById('showCreateAssessmentView').addEventListener('click', async () => {
+            editingAssessmentId = null;
+            showView('createAssessmentView');
+            // Reset form
+            document.getElementById('createAssessmentTitle').innerText = "Criar Nova Avaliação";
+            document.getElementById('saveAssessment').innerText = "Salvar Avaliação";
             document.getElementById('assessmentTitle').value = '';
             document.getElementById('imageUrl').value = '';
             document.getElementById('pdfUrl').value = '';
             document.getElementById('assessmentAttempts').value = '1';
             document.getElementById('assessmentDeadline').value = '';
             document.getElementById('criteriaContainer').innerHTML = '';
+            
             const turmaSelect = document.getElementById('assessmentTurma');
             turmaSelect.innerHTML = '<option>Carregando...</option>';
             const q = query(collection(db, "turmas"), where("professorId", "==", currentUser.uid));
@@ -740,64 +836,70 @@
             calculateTotalWeight();
         });
 
-        document.getElementById('addCriterionBtn').addEventListener('click', () => {
+        function addCriterion(data = {}) {
             const container = document.getElementById('criteriaContainer');
             const newCriterion = document.createElement('div');
             newCriterion.className = 'criterion-card relative bg-gray-700 p-4 rounded-lg border border-gray-600 grid grid-cols-1 md:grid-cols-4 gap-4 items-end';
             newCriterion.innerHTML = `
                 <div class="md:col-span-1">
                     <label class="text-sm font-medium text-gray-300">Rótulo</label>
-                    <input type="text" name="label" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
+                    <input type="text" name="label" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white" value="${data.label || ''}">
                 </div>
                 <div class="md:col-span-1">
                     <label class="text-sm font-medium text-gray-300">Tipo de Resposta</label>
                     <select name="type" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
-                        <option value="numeric">Número</option><option value="text">Texto</option>
+                        <option value="numeric" ${data.type === 'numeric' ? 'selected' : ''}>Número</option>
+                        <option value="text" ${data.type === 'text' ? 'selected' : ''}>Texto</option>
                     </select>
                 </div>
                 <div class="md:col-span-1">
                     <label class="text-sm font-medium text-gray-300">Resposta Correta</label>
-                    <input type="text" name="correctAnswer" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
+                    <input type="text" name="correctAnswer" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white" value="${data.correctAnswer || ''}">
                 </div>
                  <div class="md:col-span-1">
                     <label class="text-sm font-medium text-gray-300 criterion-weight-label">Peso (%)</label>
-                    <input type="number" name="weight" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white" value="0" step="0.1">
+                    <input type="number" name="weight" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white" value="${data.weight || 0}" step="0.1">
                 </div>
                 <div name="toleranceSection" class="md:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-600 mt-2">
                     <div>
                         <label class="text-sm font-medium text-gray-300">Tipo de Tolerância</label>
                         <select name="toleranceType" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white">
-                            <option value="percentage">Porcentagem (%)</option><option value="absolute">Valor Absoluto</option>
+                            <option value="percentage" ${data.toleranceType === 'percentage' ? 'selected' : ''}>Porcentagem (%)</option>
+                            <option value="absolute" ${data.toleranceType === 'absolute' ? 'selected' : ''}>Valor Absoluto</option>
                         </select>
                     </div>
                     <div>
                         <label class="text-sm font-medium text-gray-300">Valor Tolerância</label>
-                        <input type="number" name="toleranceValue" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white" value="0.5" step="0.1">
+                        <input type="number" name="toleranceValue" class="w-full mt-1 px-3 py-2 border bg-gray-600 border-gray-500 rounded-lg text-white" value="${data.toleranceValue || 0.5}" step="0.1">
                     </div>
                 </div>
                 <button type="button" name="removeCriterion" class="absolute top-2 right-2 text-red-400 hover:text-red-500 text-2xl font-bold">&times;</button>`;
             container.appendChild(newCriterion);
             
             const typeSelect = newCriterion.querySelector('select[name="type"]');
-            typeSelect.addEventListener('change', (e) => {
-                const toleranceSection = newCriterion.querySelector('div[name="toleranceSection"]');
-                toleranceSection.style.display = e.target.value === 'numeric' ? 'grid' : 'none';
-            });
-            typeSelect.dispatchEvent(new Event('change'));
+            const toleranceSection = newCriterion.querySelector('div[name="toleranceSection"]');
+            
+            function toggleTolerance() {
+                toleranceSection.style.display = typeSelect.value === 'numeric' ? 'grid' : 'none';
+            }
+
+            typeSelect.addEventListener('change', toggleTolerance);
             newCriterion.querySelector('button[name="removeCriterion"]').addEventListener('click', () => {
                 newCriterion.remove();
                 calculateTotalWeight();
             });
             newCriterion.querySelector('input[name="weight"]').addEventListener('input', calculateTotalWeight);
+            
+            toggleTolerance();
             updateWeightLabels();
-        });
+        }
+
+        document.getElementById('addCriterionBtn').addEventListener('click', () => addCriterion());
 
         document.getElementById('gradingType').addEventListener('change', updateWeightLabels);
         document.getElementById('assessmentMaxGrade').addEventListener('input', calculateTotalWeight);
 
-        // --- CORREÇÃO: Função de Salvar com Validação Melhorada ---
         document.getElementById('saveAssessment').addEventListener('click', async () => {
-            // 1. Coleta de dados
             const title = document.getElementById('assessmentTitle').value.trim();
             const imageUrl = document.getElementById('imageUrl').value.trim();
             const pdfUrl = document.getElementById('pdfUrl').value.trim();
@@ -810,7 +912,6 @@
             const turmaId = turmaSelect.value;
             const turmaName = turmaSelect.options[turmaSelect.selectedIndex]?.dataset.name || 'Turma Inválida';
 
-            // 2. Validação granular dos campos principais
             if (!title) { showNotification("O título da avaliação é obrigatório.", true); return; }
             if (!turmaId) { showNotification("É necessário selecionar uma turma.", true); return; }
             if (!deadlineValue) { showNotification("A data limite para resposta é obrigatória.", true); return; }
@@ -827,12 +928,10 @@
                 return;
             }
 
-            // 3. Validação dos critérios
             const criteria = [];
             const criteriaElements = document.querySelectorAll('.criterion-card');
             if (criteriaElements.length === 0) {
-                showNotification("Adicione pelo menos um critério de avaliação.", true);
-                return;
+                showNotification("Adicione pelo menos um critério de avaliação.", true); return;
             }
 
             let totalWeight = 0;
@@ -843,13 +942,13 @@
                 const correctAnswerStr = el.querySelector('input[name="correctAnswer"]').value.trim();
                 const weight = parseFloat(el.querySelector('input[name="weight"]').value);
 
-                if (!label) { showNotification(`O Rótulo do critério ${i + 1} não pode estar vazio.`, true); return; }
-                if (!correctAnswerStr) { showNotification(`A Resposta Correta do critério '${label}' não pode estar vazia.`, true); return; }
-                if (isNaN(weight)) { showNotification(`O Peso/Pontos do critério '${label}' deve ser um número válido.`, true); return; }
+                if (!label || !correctAnswerStr || isNaN(weight)) {
+                     showNotification(`Preencha todos os campos do critério ${i + 1}.`, true); return;
+                }
                 
                 const criterion = { label, type, weight };
                 if (type === 'numeric') {
-                    criterion.correctAnswer = parseFloat(correctAnswerStr.replace(',', '.')); // Aceita vírgula
+                    criterion.correctAnswer = parseFloat(correctAnswerStr.replace(',', '.'));
                     criterion.toleranceType = el.querySelector('select[name="toleranceType"]').value;
                     criterion.toleranceValue = parseFloat(el.querySelector('input[name="toleranceValue"]').value);
                     if (isNaN(criterion.correctAnswer) || isNaN(criterion.toleranceValue)) {
@@ -862,27 +961,35 @@
                 totalWeight += weight;
             }
 
-            // 4. Validação da ponderação total
             if (gradingType === 'percentage' && Math.abs(totalWeight - 100) > 0.01) {
-                showNotification(`A soma das porcentagens dos critérios deve ser 100%, mas é ${totalWeight.toFixed(1)}%.`, true); return;
+                showNotification(`A soma das porcentagens deve ser 100%, mas é ${totalWeight.toFixed(1)}%.`, true); return;
             }
             if (gradingType === 'points' && Math.abs(totalWeight - maxGrade) > 0.01) {
-                showNotification(`A soma dos pontos dos critérios (${totalWeight.toFixed(1)}) deve ser igual à Nota Máxima (${maxGrade}).`, true); return;
+                showNotification(`A soma dos pontos (${totalWeight.toFixed(1)}) deve ser igual à Nota Máxima (${maxGrade}).`, true); return;
             }
             
-            // 5. Envio para o Firestore
+            const assessmentData = {
+                title, imageUrl, pdfUrl, turmaId, turmaName, criteria, attemptsAllowed, deadline, maxGrade, gradingType, fileRequired,
+                professorId: currentUser.uid,
+            };
+
             try {
                 showView('loader');
-                await addDoc(collection(db, "assessments"), {
-                    title, imageUrl, pdfUrl, turmaId, turmaName, criteria, attemptsAllowed, deadline, maxGrade, gradingType, fileRequired,
-                    professorId: currentUser.uid, createdAt: Timestamp.now(), resultsRevealed: false
-                });
-                showNotification("Avaliação criada com sucesso!");
+                if (editingAssessmentId) {
+                    await updateDoc(doc(db, "assessments", editingAssessmentId), assessmentData);
+                    showNotification("Avaliação atualizada com sucesso!");
+                } else {
+                    assessmentData.createdAt = Timestamp.now();
+                    assessmentData.resultsRevealed = false;
+                    await addDoc(collection(db, "assessments"), assessmentData);
+                    showNotification("Avaliação criada com sucesso!");
+                }
+                editingAssessmentId = null;
                 loadProfessorDashboard();
             } catch(e) {
-                showNotification("Erro ao salvar a avaliação no banco de dados.", true);
+                showNotification("Erro ao salvar a avaliação.", true);
                 console.error("Firestore save error:", e);
-                loadProfessorDashboard(); // Volta ao dashboard em caso de erro
+                loadProfessorDashboard();
             }
         });
         
