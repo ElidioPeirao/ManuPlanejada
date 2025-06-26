@@ -618,7 +618,6 @@
             });
         }
         
-        // CORRIGIDO: Esta função agora filtra as fichas no lado do cliente para garantir que todas sejam exibidas corretamente.
         function loadAdminOrders(container) {
             container.innerHTML = `
                 <div class="flex items-center justify-end mb-4">
@@ -700,12 +699,27 @@
                 snapshot.forEach(doc => {
                     const user = { id: doc.id, ...doc.data() };
                     if (user.id === currentUserData.uid) return;
+                    
+                    const p = user.permissions || {};
+                    let permissionsHTML = [
+                        p.canCreateMachines ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400"><i data-lucide="cpu" class="w-3 h-3"></i>Máquinas</span>` : '',
+                        p.canCreateTools ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-teal-500/20 text-teal-400"><i data-lucide="wrench" class="w-3 h-3"></i>Ferramentas</span>` : '',
+                        p.canCreateParts ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400"><i data-lucide="toy-brick" class="w-3 h-3"></i>Peças</span>` : ''
+                    ].filter(Boolean).join('');
+
+                    if (!permissionsHTML) {
+                        permissionsHTML = '<span class="text-xs text-gray-500">Nenhuma permissão de criação</span>';
+                    }
+
                     const card = document.createElement('div');
-                    card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
+                    card.className = "bg-gray-900 p-4 rounded-lg border border-gray-700 flex justify-between items-center";
                     card.innerHTML = `
                         <div class="flex-grow">
                             <p class="font-semibold text-gray-100">${user.name} <span class="text-xs ml-2 px-2 py-0.5 rounded-full ${user.role === 'admin' ? 'bg-orange-600' : 'bg-gray-600'}">${user.role}</span></p>
-                            <p class="text-sm text-gray-400">${user.email}</p>
+                            <p class="text-sm text-gray-400 mb-2">${user.email}</p>
+                            <div class="flex items-center flex-wrap gap-2">
+                                ${permissionsHTML}
+                            </div>
                         </div>
                         <div class="flex items-center gap-3">
                            <button title="Gerenciar Permissões" class="action-button edit-user-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
