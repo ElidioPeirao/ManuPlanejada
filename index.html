@@ -6,7 +6,7 @@
     <title>EProjects - Controle de Manutenção</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.292.0/lucide.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -45,12 +45,21 @@
             box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
             border: 1px solid #374151; /* gray-700 */
         }
-        input:read-only {
+        input:read-only:not([type="checkbox"]) {
             background-color: #374151; /* gray-700 */
             cursor: not-allowed;
         }
         .action-button i {
              pointer-events: none;
+        }
+        .group-header {
+            background-color: #374151; /* gray-700 */
+            color: #f97316; /* orange-500 */
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
         }
     </style>
 </head>
@@ -95,7 +104,7 @@
                  <div>
                     <p class="text-xs text-right text-gray-500">UID: <span id="user-id-display-main" class="font-mono"></span></p>
                     <button id="logout-button" class="flex items-center gap-2 bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition duration-300 mt-2">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        <i class="fa-solid fa-right-from-bracket w-4 h-4"></i>
                         <span>Sair</span>
                     </button>
                 </div>
@@ -106,22 +115,25 @@
                     <div class="md:col-span-1">
                         <nav id="admin-nav" class="space-y-2">
                             <button data-target="admin-dashboard" class="w-full flex items-center gap-3 p-3 rounded-lg bg-orange-600 text-white font-semibold transition duration-200">
-                                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> <span>Dashboard</span>
+                                <i class="fa-solid fa-gauge-high w-5 h-5"></i> <span>Dashboard</span>
                             </button>
                             <button data-target="admin-orders" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i data-lucide="file-text" class="w-5 h-5"></i> <span>Fichas</span>
+                                <i class="fa-solid fa-file-lines w-5 h-5"></i> <span>Fichas</span>
                             </button>
                             <button data-target="admin-users" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i data-lucide="users" class="w-5 h-5"></i> <span>Usuários</span>
+                                <i class="fa-solid fa-users w-5 h-5"></i> <span>Usuários</span>
                             </button>
                             <button data-target="admin-machines" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i data-lucide="cpu" class="w-5 h-5"></i> <span>Máquinas</span>
+                                <i class="fa-solid fa-microchip w-5 h-5"></i> <span>Máquinas</span>
                             </button>
                             <button data-target="admin-tools" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i data-lucide="wrench" class="w-5 h-5"></i> <span>Ferramentas</span>
+                                <i class="fa-solid fa-wrench w-5 h-5"></i> <span>Ferramentas</span>
                             </button>
                             <button data-target="admin-parts" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i data-lucide="toy-brick" class="w-5 h-5"></i> <span>Peças</span>
+                                <i class="fa-solid fa-cubes w-5 h-5"></i> <span>Peças</span>
+                            </button>
+                             <button data-target="admin-categories" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
+                                <i class="fa-solid fa-tags w-5 h-5"></i> <span>Categorias</span>
                             </button>
                         </nav>
                     </div>
@@ -132,6 +144,7 @@
                         <div id="admin-machines" class="admin-tab-content hidden"></div>
                         <div id="admin-tools" class="admin-tab-content hidden"></div>
                         <div id="admin-parts" class="admin-tab-content hidden"></div>
+                        <div id="admin-categories" class="admin-tab-content hidden"></div>
                     </div>
                 </div>
             </div>
@@ -139,7 +152,7 @@
             <div id="user-view" class="hidden">
                  <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-100">Minhas Fichas de Manutenção</h2>
-                    <button id="new-form-button" class="bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700 flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> <span>Nova Ficha</span></button>
+                    <button id="new-form-button" class="bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700 flex items-center gap-2"><i class="fa-solid fa-plus w-4 h-4"></i> <span>Nova Ficha</span></button>
                 </div>
                 <div id="user-forms-list" class="mb-8 space-y-3"></div>
                 <div id="maintenance-form-container" class="hidden bg-gray-800 p-6 md:p-8 rounded-xl shadow-lg border border-gray-700"></div>
@@ -158,7 +171,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, addDoc, onSnapshot, collection, updateDoc, deleteDoc, query, where, serverTimestamp, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, onSnapshot, collection, updateDoc, deleteDoc, query, where, serverTimestamp, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBJOANW80V8EyUQ3LbNqwJ8-91DfIp5ho8",
@@ -177,7 +190,7 @@
 
         let currentUserData = null;
         let unsubscribes = [];
-        let fetchedAssets = { machines: [], parts: [], tools: [] };
+        let fetchedAssets = { machines: [], parts: [], tools: [], categories: [] };
         let statusChart = null;
 
         const ui = {
@@ -215,10 +228,6 @@
         }
         const showSuccess = (msg) => showToast(msg, 'success');
         const showError = (msg) => showToast(msg, 'error');
-        function createIconsSafely() {
-            try { if (window.lucide) window.lucide.createIcons(); }
-            catch (e) { console.warn("Lucide library not ready.", e); }
-        }
 
         function showConfirmationModal(title, message, onConfirm) {
             const content = `<p class="text-gray-300">${message}</p>`;
@@ -313,12 +322,12 @@
             ui.userIdDisplay.textContent = currentUserData.uid;
             ui.mainApp.classList.remove('hidden');
             ui.authContainer.classList.add('hidden');
+            fetchAllAssetsAndCategories();
             if (currentUserData.role === 'admin') {
                 setupAdminView();
             } else {
                 setupUserView();
             }
-            createIconsSafely();
         }
 
         function showAuth() {
@@ -328,20 +337,24 @@
             ui.registerScreen.classList.add('hidden');
         }
 
-        async function fetchAssets() {
+        async function fetchAllAssetsAndCategories() {
             try {
-                const assets = { machines: [], parts: [], tools: [] };
-                const collections = ['machines', 'parts', 'tools'];
-                const promises = collections.map(c => getDocs(collection(db, `artifacts/${appId}/public/data/${c}`)));
-                const [machinesSnap, partsSnap, toolsSnap] = await Promise.all(promises);
+                const collectionsToFetch = ['machines', 'parts', 'tools', 'categories'];
+                const promises = collectionsToFetch.map(c => getDocs(collection(db, `artifacts/${appId}/public/data/${c}`)));
+                const [machinesSnap, partsSnap, toolsSnap, categoriesSnap] = await Promise.all(promises);
+                
+                const assets = { machines: [], parts: [], tools: [], categories: [] };
                 machinesSnap.forEach(doc => assets.machines.push({ id: doc.id, ...doc.data() }));
                 partsSnap.forEach(doc => assets.parts.push({ id: doc.id, ...doc.data() }));
                 toolsSnap.forEach(doc => assets.tools.push({ id: doc.id, ...doc.data() }));
+                categoriesSnap.forEach(doc => assets.categories.push({ id: doc.id, ...doc.data() }));
+
                 fetchedAssets = assets;
                 return assets;
             } catch (error) {
-                showError("Erro ao carregar os ativos.");
-                return { machines: [], parts: [], tools: [] };
+                showError("Erro ao carregar os ativos e categorias.");
+                console.error("Fetch all assets error:", error);
+                return { machines: [], parts: [], tools: [], categories: [] };
             }
         }
 
@@ -378,6 +391,7 @@
             loadAdminContent('machines', 'Gerenciar Máquinas', (c) => loadAssetList(c, 'machines', true));
             loadAdminContent('tools', 'Gerenciar Ferramentas', (c) => loadAssetList(c, 'tools', true));
             loadAdminContent('parts', 'Gerenciar Peças', (c) => loadAssetList(c, 'parts', true));
+            loadAdminContent('categories', 'Gerenciar Categorias', loadAdminCategories);
         }
 
         function setupUserView() {
@@ -392,7 +406,7 @@
                 ui.userFormsList.innerHTML = snapshot.empty ? '<p class="text-gray-500">Nenhuma ficha encontrada.</p>' : '';
                 sortedDocs.forEach(doc => {
                     const form = doc.data();
-                    if (form.isArchived) return; // Não mostra fichas arquivadas para o usuário
+                    if (form.isArchived) return;
                     const latest = form.versions['v' + form.latestVersion];
                     const card = document.createElement('div');
                     
@@ -411,17 +425,16 @@
                         </div>
                         <div class="flex items-center gap-3 self-end md:self-center">
                             <div class="flex gap-2">
-                                <button title="Aguardando" data-doc-id="${doc.id}" data-status="Aguardando" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Aguardando' ? 'bg-yellow-500/30' : 'bg-gray-700/50 hover:bg-yellow-500/50'}"><i data-lucide="pause-circle" class="w-5 h-5 text-yellow-400"></i></button>
-                                <button title="Em Andamento" data-doc-id="${doc.id}" data-status="Em Andamento" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Em Andamento' ? 'bg-blue-500/30' : 'bg-gray-700/50 hover:bg-blue-500/50'}"><i data-lucide="play-circle" class="w-5 h-5 text-blue-400"></i></button>
-                                <button title="Finalizada" data-doc-id="${doc.id}" data-status="Finalizada" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Finalizada' ? 'bg-green-500/30' : 'bg-gray-700/50 hover:bg-green-500/50'}"><i data-lucide="check-circle-2" class="w-5 h-5 text-green-400"></i></button>
+                                <button title="Aguardando" data-doc-id="${doc.id}" data-status="Aguardando" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Aguardando' ? 'bg-yellow-500/30' : 'bg-gray-700/50 hover:bg-yellow-500/50'}"><i class="fa-solid fa-circle-pause w-5 h-5 text-yellow-400"></i></button>
+                                <button title="Em Andamento" data-doc-id="${doc.id}" data-status="Em Andamento" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Em Andamento' ? 'bg-blue-500/30' : 'bg-gray-700/50 hover:bg-blue-500/50'}"><i class="fa-solid fa-circle-play w-5 h-5 text-blue-400"></i></button>
+                                <button title="Finalizada" data-doc-id="${doc.id}" data-status="Finalizada" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Finalizada' ? 'bg-green-500/30' : 'bg-gray-700/50 hover:bg-green-500/50'}"><i class="fa-solid fa-circle-check w-5 h-5 text-green-400"></i></button>
                             </div>
-                            <button title="Editar Ficha" class="action-button edit-user-form-button p-2 rounded-full bg-gray-600 text-white hover:bg-gray-500 transition-all duration-200 hover:scale-110"><i data-lucide="edit" class="w-5 h-5"></i></button>
+                            <button title="Editar Ficha" class="action-button edit-user-form-button p-2 rounded-full bg-gray-600 text-white hover:bg-gray-500 transition-all duration-200 hover:scale-110"><i class="fa-solid fa-pencil w-5 h-5"></i></button>
                         </div>
                     `;
                     card.querySelector('.edit-user-form-button').onclick = () => editMaintenanceForm(doc.id);
                     ui.userFormsList.appendChild(card);
                 });
-                createIconsSafely();
             });
             
             ui.userFormsList.addEventListener('click', (e) => {
@@ -445,6 +458,7 @@
                 showSuccess(`Status da ficha atualizado para "${newStatus}"!`);
             } catch (e) {
                 showError("Erro ao atualizar o status da ficha.");
+                console.error("Update status error:", e);
             }
         }
         
@@ -485,22 +499,18 @@
 
         function loadUserAssets(assetType) {
             const container = ui.userAssetContent;
-            container.innerHTML = `<div class="mb-4"><input type="search" id="user-asset-search" placeholder="Buscar..." class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md"></div><div id="user-asset-list-container"></div>`;
-            const listContainer = document.getElementById('user-asset-list-container');
-            const searchInput = document.getElementById('user-asset-search');
-            
-            let allDocs = [];
-
-            const q = collection(db, `artifacts/${appId}/public/data/${assetType}`);
-            const unsub = onSnapshot(q, (snapshot) => {
-                allDocs = snapshot.docs;
-                renderFilteredAssets(allDocs, listContainer, assetType.slice(0,-1), false, searchInput.value);
-            });
-            unsubscribes.push(unsub);
-            
-            searchInput.addEventListener('input', (e) => {
-                 renderFilteredAssets(allDocs, listContainer, assetType.slice(0,-1), false, e.target.value);
-            });
+            const assetNameSingular = assetType.slice(0, -1);
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                     <h3 class="text-xl font-bold text-gray-100">Gerenciar ${assetNameSingular.charAt(0).toUpperCase() + assetNameSingular.slice(1)}s</h3>
+                    <button id="user-add-asset-button" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2">
+                        <i class="fa-solid fa-plus w-4 h-4"></i> <span>Adicionar</span>
+                    </button>
+                </div>
+                <div id="asset-list-container"></div>
+            `;
+            document.getElementById('user-add-asset-button').onclick = () => manageAsset(assetNameSingular, null, false);
+            loadAssetList(document.getElementById('asset-list-container'), assetType, false);
         }
 
         // --- ADMIN VIEW FUNCTIONS ---
@@ -508,14 +518,16 @@
             const container = document.getElementById(`admin-${id}`);
             container.innerHTML = `<h2 class="text-2xl font-bold text-gray-100 mb-4">${title}</h2><div class="content-wrapper"></div>`;
             const isAsset = !['forms', 'users', 'orders', 'dashboard'].includes(id);
-            if (isAsset) {
+             if (isAsset) {
                 const header = container.querySelector('h2');
                 header.classList.add('flex', 'justify-between', 'items-center');
-                header.insertAdjacentHTML('beforeend', `<button id="add-asset-${id}" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> <span>Adicionar</span></button>`);
-                document.getElementById(`add-asset-${id}`).onclick = () => manageAsset(id.slice(0, -1), null, true);
+                const buttonText = id === 'categories' ? 'Adicionar Categoria' : 'Adicionar';
+                const clickHandler = id === 'categories' ? () => manageCategory() : () => manageAsset(id.slice(0, -1), null, true);
+
+                header.insertAdjacentHTML('beforeend', `<button id="add-asset-${id}" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2"><i class="fa-solid fa-plus w-4 h-4"></i> <span>${buttonText}</span></button>`);
+                document.getElementById(`add-asset-${id}`).onclick = clickHandler;
             }
             loaderFn(container.querySelector('.content-wrapper'));
-            createIconsSafely();
         }
 
         async function loadAdminDashboard(container) {
@@ -537,7 +549,7 @@
                     </div>
                 </div>
             `;
-
+            
             const ordersQuery = query(collection(db, `artifacts/${appId}/public/data/maintenance_forms`));
             const usersQuery = query(collection(db, 'users'));
 
@@ -565,10 +577,10 @@
                      const status = form.status || 'Aguardando';
                      const style = statusStyles[status] || statusStyles.default;
                      recentOrdersContainer.innerHTML += `
-                        <div class="p-2 rounded-md border-l-4 ${style.split(' ')[2]} bg-gray-800/50">
-                            <p class="font-semibold text-gray-200">${latest.tag} - <span class="font-normal text-gray-400">${latest.motivo || 'Motivo não especificado'}</span></p>
-                            <p class="text-xs text-gray-500">Por: ${form.creatorName} - Status: <span class="font-semibold" style="color:${style.split(' ')[1].replace('text-','')};">${status}</span></p>
-                        </div>
+                         <div class="p-2 rounded-md border-l-4 ${style.split(' ')[2]} bg-gray-800/50">
+                             <p class="font-semibold text-gray-200">${latest.tag} - <span class="font-normal text-gray-400">${latest.motivo || 'Motivo não especificado'}</span></p>
+                             <p class="text-xs text-gray-500">Por: ${form.creatorName} - Status: <span class="font-semibold" style="color:${style.split(' ')[1].replace('text-','')};">${status}</span></p>
+                         </div>
                      `;
                  });
 
@@ -642,9 +654,9 @@
                     const card = document.createElement('div');
                     card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
                     
-                    let buttons = `<button title="Ver Detalhes" class="action-button view-details-button p-2 rounded-full text-gray-300 bg-gray-700 hover:bg-gray-600 transition-all duration-200"><i data-lucide="eye" class="w-4 h-4"></i></button>`;
+                    let buttons = `<button title="Ver Detalhes" class="action-button view-details-button p-2 rounded-full text-gray-300 bg-gray-700 hover:bg-gray-600 transition-all duration-200"><i class="fa-solid fa-eye w-4 h-4"></i></button>`;
                     if (form.status === 'Finalizada' && !form.isArchived) {
-                        buttons += `<button title="Arquivar Ficha" class="action-button archive-order-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="archive" class="w-4 h-4"></i></button>`;
+                        buttons += `<button title="Arquivar Ficha" class="action-button archive-order-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-box-archive w-4 h-4"></i></button>`;
                     }
 
                     card.innerHTML = `
@@ -661,7 +673,6 @@
 
                     listContainer.appendChild(card);
                 });
-                createIconsSafely();
             };
             
             const q = query(collection(db, `artifacts/${appId}/public/data/maintenance_forms`));
@@ -685,6 +696,7 @@
                         showSuccess('Ficha arquivada com sucesso!');
                     } catch (e) {
                         showError('Erro ao arquivar a ficha.');
+                        console.error("Archive error:", e);
                     }
                 }
             );
@@ -702,9 +714,9 @@
                     
                     const p = user.permissions || {};
                     let permissionsHTML = [
-                        p.canCreateMachines ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400"><i data-lucide="cpu" class="w-3 h-3"></i>Máquinas</span>` : '',
-                        p.canCreateTools ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-teal-500/20 text-teal-400"><i data-lucide="wrench" class="w-3 h-3"></i>Ferramentas</span>` : '',
-                        p.canCreateParts ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400"><i data-lucide="toy-brick" class="w-3 h-3"></i>Peças</span>` : ''
+                        p.canCreateMachines ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400"><i class="fa-solid fa-microchip w-3 h-3"></i>&nbsp;Máquinas</span>` : '',
+                        p.canCreateTools ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-teal-500/20 text-teal-400"><i class="fa-solid fa-wrench w-3 h-3"></i>&nbsp;Ferramentas</span>` : '',
+                        p.canCreateParts ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400"><i class="fa-solid fa-cubes w-3 h-3"></i>&nbsp;Peças</span>` : ''
                     ].filter(Boolean).join('');
 
                     if (!permissionsHTML) {
@@ -722,15 +734,14 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
-                           <button title="Gerenciar Permissões" class="action-button edit-user-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                           <button title="Excluir Usuário" class="action-button delete-user-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                           <button title="Gerenciar Permissões" class="action-button edit-user-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-sliders w-4 h-4"></i></button>
+                           <button title="Excluir Usuário" class="action-button delete-user-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-trash-can w-4 h-4"></i></button>
                         </div>
                     `;
                     card.querySelector('.edit-user-button').onclick = () => manageUserPermissions(user);
                     card.querySelector('.delete-user-button').onclick = () => deleteUser(user.id, user.name);
                     list.appendChild(card);
                 });
-                createIconsSafely();
             });
             unsubscribes.push(unsub);
         }
@@ -745,6 +756,7 @@
                         showSuccess(`Usuário "${userName}" excluído.`);
                     } catch (e) {
                         showError("Erro ao excluir o documento do usuário.");
+                        console.error("Delete user error:", e);
                     }
                 }
             );
@@ -771,97 +783,203 @@
                     await updateDoc(userDocRef, { role: newRole, permissions: newPermissions });
                     showSuccess("Permissões atualizadas com sucesso!");
                     closeModal();
-                } catch(e) { showError("Erro ao atualizar permissões."); }
+                } catch(e) { 
+                    showError("Erro ao atualizar permissões.");
+                    console.error("Update permissions error:", e);
+                }
             };
         }
         
         function loadAssetList(container, collectionName, isAdmin) {
-            container.innerHTML = `<div class="mb-4"><input type="search" id="search-${collectionName}" placeholder="Buscar por nome, tag ou código..." class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md"></div><div id="list-${collectionName}" class="space-y-2 mt-4"></div>`;
+            const typeName = {machines: 'Máquinas', tools: 'Ferramentas', parts: 'Peças'}[collectionName] || 'Itens';
+            container.innerHTML = `
+                <div class="flex flex-wrap gap-4 mb-4 items-center">
+                    <div class="flex-grow min-w-[200px]"><input type="search" id="search-${collectionName}" placeholder="Buscar..." class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md"></div>
+                    <div class="flex-shrink-0"><select id="category-filter-${collectionName}" class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md"><option value="">Filtrar por Categoria</option></select></div>
+                    ${isAdmin ? `<div class="flex-shrink-0"><button id="auto-categorize-${collectionName}" class="w-full bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-teal-700 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-xs"></i> <span>Categorizar ${typeName}</span></button></div>` : ''}
+                </div>
+                <div id="list-${collectionName}" class="mt-4"></div>`;
+            
+            if (isAdmin) {
+                document.getElementById(`auto-categorize-${collectionName}`).onclick = () => autoCategorizeItems(collectionName);
+            }
+
             const listContainer = document.getElementById(`list-${collectionName}`);
             const searchInput = document.getElementById(`search-${collectionName}`);
+            const categoryFilterSelect = document.getElementById(`category-filter-${collectionName}`);
             
             let allDocs = [];
+            let allCategories = [];
 
-            const q = collection(db, `artifacts/${appId}/public/data/${collectionName}`);
-            const unsub = onSnapshot(q, (snapshot) => {
+            const qAssets = query(collection(db, `artifacts/${appId}/public/data/${collectionName}`));
+            const qCategories = query(collection(db, `artifacts/${appId}/public/data/categories`), where("type", "==", collectionName.slice(0, -1)));
+
+            const unsubAssets = onSnapshot(qAssets, (snapshot) => {
                 allDocs = snapshot.docs;
-                renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, searchInput.value);
+                renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, searchInput.value, categoryFilterSelect.value);
             });
-            unsubscribes.push(unsub);
+            unsubscribes.push(unsubAssets);
+
+            const unsubCategories = onSnapshot(qCategories, (snapshot) => {
+                allCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data()}));
+                const currentFilter = categoryFilterSelect.value;
+                let optionsHTML = '<option value="">Todas as Categorias</option><option value="none">Sem Categoria</option>';
+                allCategories.sort((a,b) => a.name.localeCompare(b.name)).forEach(cat => {
+                    optionsHTML += `<option value="${cat.id}">${cat.name}</option>`;
+                });
+                categoryFilterSelect.innerHTML = optionsHTML;
+                categoryFilterSelect.value = currentFilter;
+
+                renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, searchInput.value, categoryFilterSelect.value);
+            });
+            unsubscribes.push(unsubCategories);
             
-            searchInput.addEventListener('input', (e) => {
-                 renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, e.target.value);
-            });
+            const handleFilterChange = () => {
+                renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, searchInput.value, categoryFilterSelect.value);
+            };
+
+            searchInput.addEventListener('input', handleFilterChange);
+            categoryFilterSelect.addEventListener('change', handleFilterChange);
         }
 
-        function renderFilteredAssets(docs, container, type, isAdmin, filter) {
+        function renderFilteredAssets(docs, container, type, isAdmin, textFilter, categoryFilter) {
             container.innerHTML = '';
-            const lowercasedFilter = filter.toLowerCase();
+            const lowercasedTextFilter = textFilter.toLowerCase();
             
-            const filteredDocs = docs.filter(doc => {
-                if (!lowercasedFilter) return true;
-                const data = doc.data();
-                switch(type) {
-                    case 'machine': return (data.tag?.toLowerCase() || '').includes(lowercasedFilter) || (data.description?.toLowerCase() || '').includes(lowercasedFilter);
-                    case 'tool': return (data.name?.toLowerCase() || '').includes(lowercasedFilter);
-                    case 'part': return (data.description?.toLowerCase() || '').includes(lowercasedFilter) || (data.code?.toLowerCase() || '').includes(lowercasedFilter);
-                    default: return true;
+            let filteredDocs = docs;
+
+            if (categoryFilter) {
+                if (categoryFilter === 'none') {
+                    filteredDocs = filteredDocs.filter(doc => !doc.data().categoryId);
+                } else {
+                    filteredDocs = filteredDocs.filter(doc => doc.data().categoryId === categoryFilter);
                 }
-            });
+            }
+            
+            if (lowercasedTextFilter) {
+                filteredDocs = filteredDocs.filter(doc => {
+                    const data = doc.data();
+                    return Object.values(data).some(value => 
+                        String(value).toLowerCase().includes(lowercasedTextFilter)
+                    );
+                });
+            }
 
             if (filteredDocs.length === 0) {
                 container.innerHTML = '<p class="text-gray-500 mt-4">Nenhum item encontrado.</p>';
-            } else {
-                filteredDocs.forEach(doc => {
-                    container.appendChild(renderAssetCard(doc.id, doc.data(), type, isAdmin));
-                });
+                return;
             }
-            createIconsSafely();
+            
+            const groups = filteredDocs.reduce((acc, doc) => {
+                const groupKey = doc.data().categoryName || 'Sem Categoria';
+                if (!acc[groupKey]) acc[groupKey] = [];
+                acc[groupKey].push(doc);
+                return acc;
+            }, {});
+
+            Object.keys(groups).sort((a,b) => {
+                if(a === 'Sem Categoria') return 1;
+                if(b === 'Sem Categoria') return -1;
+                return a.localeCompare(b);
+            }).forEach(groupKey => {
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'group-header';
+                groupHeader.textContent = groupKey;
+                container.appendChild(groupHeader);
+                
+                const groupContainer = document.createElement('div');
+                groupContainer.className = 'space-y-2';
+                groups[groupKey].forEach(doc => {
+                    groupContainer.appendChild(renderAssetCard(doc.id, doc.data(), type, isAdmin));
+                });
+                container.appendChild(groupContainer);
+            });
         }
         
         function renderAssetCard(id, data, type, isAdmin) {
             let content = '';
             switch(type) {
-                case 'machine': content = `<p class="font-bold text-gray-100">${data.tag || 'N/A'}</p><p class="text-sm text-gray-400">${data.description || 'Sem descrição'}</p>`; break;
-                case 'tool': content = `<p class="font-bold text-gray-100">${data.name || 'N/A'}</p><p class="text-sm text-gray-400">Quantidade: ${data.quantity || 0}</p>`; break;
-                case 'part': content = `<p class="font-bold text-gray-100">${data.description || 'N/A'}</p><p class="text-sm text-gray-400">Código: ${data.code || 'N/A'} | Quantidade: ${data.quantity || 0}</p>`; break;
+                case 'machine': 
+                    content = `
+                        <p class="font-bold text-gray-100 text-base">${data.description || 'Sem descrição'}</p>
+                        <p class="text-sm text-gray-400 font-mono mt-1">TAG: ${data.tag || 'N/A'}</p>
+                    `; 
+                    break;
+                case 'tool': 
+                    content = `
+                        <p class="font-bold text-gray-100">${data.name || 'N/A'}</p>
+                        <p class="text-sm text-gray-400">Quantidade: ${data.quantity || 0}</p>
+                    `; 
+                    break;
+                case 'part': 
+                    content = `
+                        <p class="font-bold text-gray-100">${data.description || 'N/A'}</p>
+                        <p class="text-sm text-gray-400">Código: ${data.code || 'N/A'} | Quantidade: ${data.quantity || 0}</p>
+                    `; 
+                    break;
             }
             const item = document.createElement('div');
             item.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
-            item.innerHTML = `
-                <div class="flex-grow">${content}</div> 
-                ${isAdmin ? `<div class="flex items-center gap-3">
-                           <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                           <button title="Excluir" class="action-button delete-asset-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                        </div>` : ''}`;
-            if(isAdmin) {
-                item.querySelector('.edit-asset-button').onclick = () => manageAsset(type, id, true);
-                item.querySelector('.delete-asset-button').onclick = () => deleteAsset(`${type}s`, id);
+
+            const assetTypePlural = `${type}s`;
+            const permKey = `canCreate${assetTypePlural.charAt(0).toUpperCase() + assetTypePlural.slice(1)}`;
+            const canUserEdit = currentUserData && currentUserData.permissions && currentUserData.permissions[permKey];
+
+            let buttonsHTML = '';
+            if (isAdmin) {
+                buttonsHTML = `
+                    <div class="flex items-center gap-3">
+                        <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-pencil w-4 h-4"></i></button>
+                        <button title="Excluir" class="action-button delete-asset-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-trash-can w-4 h-4"></i></button>
+                    </div>`;
+            } else if (canUserEdit) {
+                 buttonsHTML = `
+                    <div class="flex items-center gap-3">
+                        <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-pencil w-4 h-4"></i></button>
+                    </div>`;
+            }
+
+            item.innerHTML = `<div class="flex-grow">${content}</div> ${buttonsHTML}`;
+
+            if (isAdmin || canUserEdit) {
+                const editButton = item.querySelector('.edit-asset-button');
+                if (editButton) editButton.onclick = () => manageAsset(type, id, isAdmin);
+            }
+            if (isAdmin) {
+                const deleteButton = item.querySelector('.delete-asset-button');
+                if (deleteButton) deleteButton.onclick = () => deleteAsset(`${type}s`, id);
             }
             return item;
         }
 
         async function manageAsset(type, id = null, isAdmin) {
+            await fetchAllAssetsAndCategories();
             const data = id ? (await getDoc(doc(db, `artifacts/${appId}/public/data/${type}s`, id))).data() : {};
-            let title, contentHTML;
+            const categories = fetchedAssets.categories.filter(c => c.type === type);
+            const categoryOptions = categories.map(cat => `<option value="${cat.id}" ${data.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('');
+
+            let title, fieldsHTML;
             const inputClass = "w-full p-2 bg-gray-900 border border-gray-600 rounded";
             
             switch(type) {
                 case 'machine':
                     title = id ? 'Editar Máquina' : 'Adicionar Máquina';
-                    contentHTML = `<form id="asset-form" class="space-y-4"><div><label class="text-gray-300">TAG:</label><input name="tag" class="${inputClass}" value="${data.tag || ''}" required></div><div><label class="text-gray-300">Descrição:</label><input name="description" class="${inputClass}" value="${data.description || ''}" required></div></form>`;
+                    fieldsHTML = `<div><label class="text-gray-300">TAG:</label><input name="tag" class="${inputClass}" value="${data.tag || ''}" required></div><div><label class="text-gray-300">Descrição:</label><input name="description" class="${inputClass}" value="${data.description || ''}" required></div>`;
                     break;
                 case 'tool':
                     title = id ? 'Editar Ferramenta' : 'Adicionar Ferramenta';
-                    contentHTML = `<form id="asset-form" class="space-y-4"><div><label class="text-gray-300">Nome:</label><input name="name" class="${inputClass}" value="${data.name || ''}" required></div><div><label class="text-gray-300">Quantidade:</label><input type="number" name="quantity" class="${inputClass}" value="${data.quantity || '0'}" required></div></form>`;
+                    fieldsHTML = `<div><label class="text-gray-300">Nome:</label><input name="name" class="${inputClass}" value="${data.name || ''}" required></div><div><label class="text-gray-300">Quantidade:</label><input type="number" name="quantity" class="${inputClass}" value="${data.quantity || '0'}" required></div>`;
                     break;
                 case 'part':
                     title = id ? 'Editar Peça' : 'Adicionar Peça';
-                    contentHTML = `<form id="asset-form" class="space-y-4"><div><label class="text-gray-300">Código:</label><input name="code" class="${inputClass}" value="${data.code || ''}" required></div><div><label class="text-gray-300">Descrição:</label><input name="description" class="${inputClass}" value="${data.description || ''}" required></div><div><label class="text-gray-300">Quantidade:</label><input type="number" name="quantity" class="${inputClass}" value="${data.quantity || '0'}" required></div></form>`;
+                    fieldsHTML = `<div><label class="text-gray-300">Código:</label><input name="code" class="${inputClass}" value="${data.code || ''}" required></div><div><label class="text-gray-300">Descrição:</label><input name="description" class="${inputClass}" value="${data.description || ''}" required></div><div><label class="text-gray-300">Quantidade:</label><input type="number" name="quantity" class="${inputClass}" value="${data.quantity || '0'}" required></div>`;
                     break;
             }
+
+            const contentHTML = `<form id="asset-form" class="space-y-4">${fieldsHTML}<div><label class="text-gray-300">Categoria:</label><select name="categoryId" class="${inputClass}"><option value="">Nenhuma</option>${categoryOptions}</select></div></form>`;
             const footerHTML = `<button id="cancel-modal" class="bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-500">Cancelar</button><button id="save-asset" class="bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700">Salvar</button>`;
             ui.modalContainer.innerHTML = createModalHTML(title, contentHTML, footerHTML);
+            
             document.getElementById('cancel-modal').onclick = closeModal;
             document.getElementById('close-modal-button').onclick = closeModal;
             document.getElementById('save-asset').onclick = async () => {
@@ -870,10 +988,20 @@
                     const formData = new FormData(form);
                     const dataToSave = {};
                     formData.forEach((value, key) => { dataToSave[key] = isNaN(Number(value)) || value === '' || key === 'code' || key === 'tag' ? value : Number(value); });
+
+                    const categorySelect = form.elements.categoryId;
+                    if(categorySelect.value) {
+                        dataToSave.categoryId = categorySelect.value;
+                        dataToSave.categoryName = categorySelect.options[categorySelect.selectedIndex].text;
+                    } else {
+                        dataToSave.categoryId = '';
+                        dataToSave.categoryName = '';
+                    }
+
                     try {
                         const collectionName = `${type}s`;
                         if (id) {
-                            await setDoc(doc(db, `artifacts/${appId}/public/data/${collectionName}`, id), dataToSave);
+                            await updateDoc(doc(db, `artifacts/${appId}/public/data/${collectionName}`, id), dataToSave);
                             showSuccess("Item atualizado com sucesso!");
                         } else {
                             await addDoc(collection(db, `artifacts/${appId}/public/data/${collectionName}`), dataToSave);
@@ -897,29 +1025,199 @@
                         showSuccess("Item excluído com sucesso.");
                     } catch(e) {
                         showError("Falha ao excluir o item.");
+                        console.error("Delete asset error:", e);
+                    }
+                }
+            );
+        }
+
+        // --- Category Management Functions ---
+        function loadAdminCategories(container) {
+            container.innerHTML = `<div id="category-list" class="space-y-2"></div>`;
+            const listContainer = document.getElementById('category-list');
+
+            const q = query(collection(db, `artifacts/${appId}/public/data/categories`));
+            const unsub = onSnapshot(q, (snapshot) => {
+                listContainer.innerHTML = snapshot.empty ? '<p class="text-gray-500">Nenhuma categoria encontrada.</p>' : '';
+                const categoriesByType = snapshot.docs.reduce((acc, doc) => {
+                    const cat = { id: doc.id, ...doc.data() };
+                    if(!acc[cat.type]) acc[cat.type] = [];
+                    acc[cat.type].push(cat);
+                    return acc;
+                }, {});
+
+                Object.keys(categoriesByType).sort().forEach(type => {
+                    const typeName = { machine: 'Máquinas', tool: 'Ferramentas', part: 'Peças'}[type] || 'Outras';
+                    const groupHeader = document.createElement('div');
+                    groupHeader.className = 'group-header';
+                    groupHeader.textContent = typeName;
+                    listContainer.appendChild(groupHeader);
+                    
+                    const groupContainer = document.createElement('div');
+                    groupContainer.className = 'space-y-2';
+                    categoriesByType[type].sort((a,b) => a.name.localeCompare(b.name)).forEach(category => {
+                        const card = document.createElement('div');
+                        card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
+                        card.innerHTML = `
+                            <p class="font-semibold text-gray-100">${category.name}</p>
+                            <div class="flex items-center gap-3">
+                               <button title="Editar Categoria" class="action-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all"><i class="fa-solid fa-pencil w-4 h-4"></i></button>
+                               <button title="Excluir Categoria" class="action-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all"><i class="fa-solid fa-trash-can w-4 h-4"></i></button>
+                            </div>
+                        `;
+                        card.querySelector('[title="Editar Categoria"]').onclick = () => manageCategory(category.id, category);
+                        card.querySelector('[title="Excluir Categoria"]').onclick = () => deleteCategory(category.id, category.name);
+                        groupContainer.appendChild(card);
+                    });
+                     listContainer.appendChild(groupContainer);
+                });
+            });
+            unsubscribes.push(unsub);
+        }
+
+        async function manageCategory(id = null, data = {}) {
+            const title = id ? 'Editar Categoria' : 'Adicionar Categoria';
+            const content = `
+                <form id="category-form" class="space-y-4">
+                    <div>
+                        <label class="text-gray-300">Nome da Categoria:</label>
+                        <input name="name" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded" value="${data.name || ''}" required>
+                    </div>
+                    <div>
+                        <label class="text-gray-300">Tipo da Categoria:</label>
+                        <select name="type" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded" required>
+                            <option value="">Selecione um tipo</option>
+                            <option value="machine" ${data.type === 'machine' ? 'selected' : ''}>Máquina</option>
+                            <option value="tool" ${data.type === 'tool' ? 'selected' : ''}>Ferramenta</option>
+                            <option value="part" ${data.type === 'part' ? 'selected' : ''}>Peça</option>
+                        </select>
+                    </div>
+                </form>`;
+            const footer = `<button id="cancel-modal" class="bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-500">Cancelar</button><button id="save-category" class="bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700">Salvar</button>`;
+            ui.modalContainer.innerHTML = createModalHTML(title, content, footer);
+
+            document.getElementById('cancel-modal').onclick = closeModal;
+            document.getElementById('close-modal-button').onclick = closeModal;
+            document.getElementById('save-category').onclick = async () => {
+                const form = document.getElementById('category-form');
+                const name = form.elements.name.value;
+                const type = form.elements.type.value;
+                if(name && type) {
+                    try {
+                        const collectionRef = collection(db, `artifacts/${appId}/public/data/categories`);
+                        if(id) {
+                            await setDoc(doc(collectionRef, id), { name, type });
+                            showSuccess('Categoria atualizada!');
+                        } else {
+                            await addDoc(collectionRef, { name, type });
+                            showSuccess('Categoria criada!');
+                        }
+                        fetchAllAssetsAndCategories();
+                        closeModal();
+                    } catch (e) {
+                        showError('Erro ao salvar categoria.');
+                        console.error(e);
+                    }
+                } else {
+                    showError('Nome e tipo são obrigatórios.');
+                }
+            };
+        }
+
+        async function deleteCategory(id, name) {
+            showConfirmationModal(
+                'Excluir Categoria',
+                `Tem certeza que deseja excluir a categoria "${name}"? Os itens nesta categoria ficarão sem categoria.`,
+                async () => {
+                    try {
+                        await deleteDoc(doc(db, `artifacts/${appId}/public/data/categories`, id));
+                        showSuccess("Categoria excluída.");
+                        fetchAllAssetsAndCategories();
+                    } catch(e) {
+                        showError("Falha ao excluir a categoria.");
+                        console.error(e);
                     }
                 }
             );
         }
         
-        // --- Funções do Formulário de Manutenção ---
+        async function autoCategorizeItems(assetTypeToProcess) {
+            showToast(`Analisando ${assetTypeToProcess}...`, 'info');
+            await fetchAllAssetsAndCategories(); // Ensure we have the latest data
+            
+            const allCategories = fetchedAssets.categories;
+            const batch = writeBatch(db);
+            let updatedCount = 0;
+
+            const assetConfig = {
+                machines: { field: 'description' },
+                tools: { field: 'name' },
+                parts: { field: 'description' }
+            }[assetTypeToProcess];
+
+            const assetTypeSingular = assetTypeToProcess.slice(0, -1);
+            const relevantCategories = allCategories.filter(c => c.type === assetTypeSingular);
+            const itemsToProcess = fetchedAssets[assetTypeToProcess].filter(item => !item.categoryId);
+
+            itemsToProcess.forEach(itemData => {
+                const itemText = (itemData[assetConfig.field] || '').toLowerCase();
+                if (!itemText) return;
+                
+                let bestMatch = null;
+                let longestMatchLength = 0;
+
+                relevantCategories.forEach(cat => {
+                    const catName = cat.name.toLowerCase();
+                    if (itemText.includes(catName)) {
+                        if (catName.length > longestMatchLength) {
+                            longestMatchLength = catName.length;
+                            bestMatch = cat;
+                        }
+                    }
+                });
+
+                if (bestMatch) {
+                    const itemRef = doc(db, `artifacts/${appId}/public/data/${assetTypeToProcess}`, itemData.id);
+                    batch.update(itemRef, {
+                        categoryId: bestMatch.id,
+                        categoryName: bestMatch.name
+                    });
+                    updatedCount++;
+                }
+            });
+
+            if (updatedCount > 0) {
+                try {
+                    await batch.commit();
+                    showSuccess(`${updatedCount} ${updatedCount > 1 ? 'itens foram' : 'item foi'} categorizado(s) automaticamente!`);
+                } catch(e) {
+                    showError("Erro ao salvar as categorias automáticas.");
+                    console.error("Auto-categorize error:", e);
+                }
+            } else {
+                showToast(`Nenhum(a) ${assetTypeSingular} para categorizar.`, "info");
+            }
+        }
+
+        // --- Maintenance Form Functions ---
         ui.newFormButton.addEventListener('click', async () => {
             try {
                 showToast("Carregando dados...", "info");
-                const assets = await fetchAssets();
+                const assets = await fetchAllAssetsAndCategories();
                 ui.maintenanceFormContainer.innerHTML = createMaintenanceFormHTML({}, null, 1, assets);
                 ui.maintenanceFormContainer.classList.remove('hidden');
                 ui.maintenanceFormContainer.scrollIntoView({ behavior: 'smooth' });
                 attachFormListeners(assets);
             } catch(e) {
                 showError("Erro ao carregar dados do formulário.");
+                console.error("New form error:", e);
             }
         });
 
         async function editMaintenanceForm(formId) {
             try {
                 showToast("Carregando dados...", "info");
-                const assets = await fetchAssets();
+                const assets = await fetchAllAssetsAndCategories();
                 const docRef = doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
@@ -932,6 +1230,7 @@
                 } else showError("Ficha não encontrada.");
             } catch (e) {
                 showError("Erro ao carregar dados do formulário.");
+                console.error("Edit form error:", e);
             }
         }
 
