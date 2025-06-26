@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.292.0/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -16,6 +17,7 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
             display: flex; justify-content: center; align-items: center; z-index: 50;
+            backdrop-filter: blur(4px);
         }
         .modal-content { max-height: 90vh; }
         .form-section-title {
@@ -47,7 +49,6 @@
             background-color: #374151; /* gray-700 */
             cursor: not-allowed;
         }
-        /* Garante que o clique no ícone seja capturado pelo botão pai */
         .action-button i {
              pointer-events: none;
         }
@@ -59,7 +60,6 @@
 
         <div id="auth-container" class="max-w-md mx-auto">
             <img src="https://i.imgur.com/EDw5HWL.png" alt="Logo da EProjects" class="w-48 mx-auto mb-6">
-
             <div id="login-screen" class="auth-card">
                 <h1 class="text-2xl font-bold text-center text-gray-100 mb-6">Acessar Sistema</h1>
                 <form id="login-form" class="space-y-4">
@@ -71,7 +71,6 @@
                     Não tem uma conta? <button id="show-register" class="font-semibold text-orange-500 hover:underline">Cadastre-se</button>
                 </p>
             </div>
-
             <div id="register-screen" class="auth-card hidden">
                  <h1 class="text-2xl font-bold text-center text-gray-100 mb-6">Criar Conta</h1>
                 <form id="register-form" class="space-y-4">
@@ -106,7 +105,10 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div class="md:col-span-1">
                         <nav id="admin-nav" class="space-y-2">
-                            <button data-target="admin-forms" class="w-full flex items-center gap-3 p-3 rounded-lg bg-orange-600 text-white font-semibold transition duration-200">
+                            <button data-target="admin-dashboard" class="w-full flex items-center gap-3 p-3 rounded-lg bg-orange-600 text-white font-semibold transition duration-200">
+                                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> <span>Dashboard</span>
+                            </button>
+                            <button data-target="admin-orders" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
                                 <i data-lucide="file-text" class="w-5 h-5"></i> <span>Fichas</span>
                             </button>
                             <button data-target="admin-users" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
@@ -124,7 +126,8 @@
                         </nav>
                     </div>
                     <div class="md:col-span-3 bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                        <div id="admin-forms" class="admin-tab-content"></div>
+                        <div id="admin-dashboard" class="admin-tab-content"></div>
+                        <div id="admin-orders" class="admin-tab-content hidden"></div>
                         <div id="admin-users" class="admin-tab-content hidden"></div>
                         <div id="admin-machines" class="admin-tab-content hidden"></div>
                         <div id="admin-tools" class="admin-tab-content hidden"></div>
@@ -155,7 +158,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, addDoc, onSnapshot, collection, updateDoc, deleteDoc, query, where, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, onSnapshot, collection, updateDoc, deleteDoc, query, where, serverTimestamp, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBJOANW80V8EyUQ3LbNqwJ8-91DfIp5ho8",
@@ -175,6 +178,7 @@
         let currentUserData = null;
         let unsubscribes = [];
         let fetchedAssets = { machines: [], parts: [], tools: [] };
+        let statusChart = null;
 
         const ui = {
             authContainer: document.getElementById('auth-container'),
@@ -214,6 +218,22 @@
         function createIconsSafely() {
             try { if (window.lucide) window.lucide.createIcons(); }
             catch (e) { console.warn("Lucide library not ready.", e); }
+        }
+
+        function showConfirmationModal(title, message, onConfirm) {
+            const content = `<p class="text-gray-300">${message}</p>`;
+            const footer = `
+                <button id="cancel-confirm-button" class="bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-500">Cancelar</button>
+                <button id="confirm-action-button" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Confirmar</button>
+            `;
+            ui.modalContainer.innerHTML = createModalHTML(title, content, footer);
+            
+            document.getElementById('close-modal-button').onclick = closeModal;
+            document.getElementById('cancel-confirm-button').onclick = closeModal;
+            document.getElementById('confirm-action-button').onclick = () => {
+                onConfirm();
+                closeModal();
+            };
         }
 
         const statusStyles = {
@@ -274,7 +294,6 @@
                 ui.registerForm.reset();
             } catch (error) {
                 showError("Falha no cadastro: " + error.message);
-                console.error("Register Error:", error);
             }
         });
 
@@ -321,7 +340,6 @@
                 fetchedAssets = assets;
                 return assets;
             } catch (error) {
-                console.error("Error fetching assets:", error);
                 showError("Erro ao carregar os ativos.");
                 return { machines: [], parts: [], tools: [] };
             }
@@ -334,6 +352,10 @@
             const navButtons = document.querySelectorAll('#admin-nav button');
             navButtons.forEach((button) => {
                 button.addEventListener('click', (e) => {
+                    if (statusChart) {
+                        statusChart.destroy();
+                        statusChart = null;
+                    }
                     navButtons.forEach(btn => {
                         btn.classList.remove('bg-orange-600', 'text-white');
                         btn.classList.add('hover:bg-gray-700');
@@ -348,13 +370,10 @@
                 });
             });
             
-            if(document.querySelector('#admin-nav button.bg-orange-600') === null) {
-                document.querySelector('#admin-nav button[data-target="admin-forms"]').click();
-            } else {
-                document.querySelector('#admin-nav button.bg-orange-600').click();
-            }
+            document.querySelector('#admin-nav button[data-target="admin-dashboard"]').click();
             
-            loadAdminContent('forms', 'Fichas de Manutenção', loadAdminForms);
+            loadAdminDashboard(document.getElementById('admin-dashboard'));
+            loadAdminContent('orders', 'Fichas de Manutenção', loadAdminOrders);
             loadAdminContent('users', 'Gerenciar Usuários', loadAdminUsers);
             loadAdminContent('machines', 'Gerenciar Máquinas', (c) => loadAssetList(c, 'machines', true));
             loadAdminContent('tools', 'Gerenciar Ferramentas', (c) => loadAssetList(c, 'tools', true));
@@ -368,15 +387,12 @@
 
             const q = query(collection(db, `artifacts/${appId}/public/data/maintenance_forms`), where("creatorUid", "==", currentUserData.uid));
             const unsubForms = onSnapshot(q, (snapshot) => {
-                const sortedDocs = snapshot.docs.sort((a, b) => {
-                    const timeA = a.data().createdAt?.toMillis() || 0;
-                    const timeB = b.data().createdAt?.toMillis() || 0;
-                    return timeB - timeA;
-                });
+                const sortedDocs = snapshot.docs.sort((a, b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
 
                 ui.userFormsList.innerHTML = snapshot.empty ? '<p class="text-gray-500">Nenhuma ficha encontrada.</p>' : '';
                 sortedDocs.forEach(doc => {
                     const form = doc.data();
+                    if (form.isArchived) return; // Não mostra fichas arquivadas para o usuário
                     const latest = form.versions['v' + form.latestVersion];
                     const card = document.createElement('div');
                     
@@ -429,7 +445,6 @@
                 showSuccess(`Status da ficha atualizado para "${newStatus}"!`);
             } catch (e) {
                 showError("Erro ao atualizar o status da ficha.");
-                console.error("Erro ao atualizar status:", e);
             }
         }
         
@@ -470,57 +485,210 @@
 
         function loadUserAssets(assetType) {
             const container = ui.userAssetContent;
-            container.innerHTML = `<h3 class="text-xl font-semibold text-gray-100 mb-4 flex justify-between items-center">Lista de ${assetType.charAt(0).toUpperCase() + assetType.slice(1)}</h3>`;
-            const header = container.querySelector('h3');
-            const button = document.createElement('button');
-            button.className = "bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2";
-            button.innerHTML = `<i data-lucide="plus" class="w-4 h-4"></i> <span>Adicionar</span>`;
-            button.onclick = () => manageAsset(assetType.slice(0, -1), null, false);
-            header.appendChild(button);
+            container.innerHTML = `<div class="mb-4"><input type="search" id="user-asset-search" placeholder="Buscar..." class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md"></div><div id="user-asset-list-container"></div>`;
+            const listContainer = document.getElementById('user-asset-list-container');
+            const searchInput = document.getElementById('user-asset-search');
             
-            const listContainer = document.createElement('div');
-            container.appendChild(listContainer);
-            loadAssetList(listContainer, assetType, false);
-            createIconsSafely();
+            let allDocs = [];
+
+            const q = collection(db, `artifacts/${appId}/public/data/${assetType}`);
+            const unsub = onSnapshot(q, (snapshot) => {
+                allDocs = snapshot.docs;
+                renderFilteredAssets(allDocs, listContainer, assetType.slice(0,-1), false, searchInput.value);
+            });
+            unsubscribes.push(unsub);
+            
+            searchInput.addEventListener('input', (e) => {
+                 renderFilteredAssets(allDocs, listContainer, assetType.slice(0,-1), false, e.target.value);
+            });
         }
 
-
-        // --- FUNÇÕES DE ADMIN ---
+        // --- ADMIN VIEW FUNCTIONS ---
         function loadAdminContent(id, title, loaderFn) {
             const container = document.getElementById(`admin-${id}`);
             container.innerHTML = `<h2 class="text-2xl font-bold text-gray-100 mb-4">${title}</h2><div class="content-wrapper"></div>`;
-            const isAsset = !['forms', 'users'].includes(id);
+            const isAsset = !['forms', 'users', 'orders', 'dashboard'].includes(id);
             if (isAsset) {
                 const header = container.querySelector('h2');
-                const button = document.createElement('button');
-                button.className = "bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2";
-                button.innerHTML = `<i data-lucide="plus" class="w-4 h-4"></i> <span>Adicionar</span>`;
-                button.onclick = () => manageAsset(id.slice(0, -1), null, true);
                 header.classList.add('flex', 'justify-between', 'items-center');
-                header.appendChild(button);
+                header.insertAdjacentHTML('beforeend', `<button id="add-asset-${id}" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> <span>Adicionar</span></button>`);
+                document.getElementById(`add-asset-${id}`).onclick = () => manageAsset(id.slice(0, -1), null, true);
             }
             loaderFn(container.querySelector('.content-wrapper'));
             createIconsSafely();
         }
+
+        async function loadAdminDashboard(container) {
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-sm text-gray-400">Total de Fichas</p><p id="kpi-total-orders" class="text-2xl font-bold">0</p></div>
+                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-sm text-gray-400">Fichas em Aberto</p><p id="kpi-open-orders" class="text-2xl font-bold text-yellow-400">0</p></div>
+                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-sm text-gray-400">Fichas Finalizadas</p><p id="kpi-closed-orders" class="text-2xl font-bold text-green-400">0</p></div>
+                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-sm text-gray-400">Total de Usuários</p><p id="kpi-total-users" class="text-2xl font-bold">0</p></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-gray-900 p-4 rounded-lg">
+                        <h3 class="font-semibold mb-4">Últimas Ordens de Serviço</h3>
+                        <div id="dashboard-recent-orders" class="space-y-3"></div>
+                    </div>
+                    <div class="bg-gray-900 p-4 rounded-lg flex flex-col items-center justify-center">
+                        <h3 class="font-semibold mb-4">Status das Fichas</h3>
+                        <div class="w-full max-w-[250px]"><canvas id="status-chart"></canvas></div>
+                    </div>
+                </div>
+            `;
+
+            const ordersQuery = query(collection(db, `artifacts/${appId}/public/data/maintenance_forms`));
+            const usersQuery = query(collection(db, 'users'));
+
+            const unsubOrders = onSnapshot(ordersQuery, (snapshot) => {
+                const orders = snapshot.docs.map(d => d.data());
+                const statusCounts = { 'Aguardando': 0, 'Em Andamento': 0, 'Finalizada': 0 };
+                orders.forEach(order => {
+                    if(!order.isArchived) {
+                        const status = order.status || 'Aguardando';
+                        if(statusCounts.hasOwnProperty(status)) {
+                           statusCounts[status]++;
+                        }
+                    }
+                });
+                
+                document.getElementById('kpi-total-orders').textContent = orders.length;
+                document.getElementById('kpi-open-orders').textContent = statusCounts['Aguardando'] + statusCounts['Em Andamento'];
+                document.getElementById('kpi-closed-orders').textContent = statusCounts['Finalizada'];
+                updateChart(statusCounts);
+
+                 const recentOrdersContainer = document.getElementById('dashboard-recent-orders');
+                 recentOrdersContainer.innerHTML = '';
+                 orders.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).slice(0,5).forEach(form => {
+                     const latest = form.versions['v' + form.latestVersion];
+                     const status = form.status || 'Aguardando';
+                     const style = statusStyles[status] || statusStyles.default;
+                     recentOrdersContainer.innerHTML += `
+                        <div class="p-2 rounded-md border-l-4 ${style.split(' ')[2]} bg-gray-800/50">
+                            <p class="font-semibold text-gray-200">${latest.tag} - <span class="font-normal text-gray-400">${latest.motivo || 'Motivo não especificado'}</span></p>
+                            <p class="text-xs text-gray-500">Por: ${form.creatorName} - Status: <span class="font-semibold" style="color:${style.split(' ')[1].replace('text-','')};">${status}</span></p>
+                        </div>
+                     `;
+                 });
+
+            });
+             unsubscribes.push(unsubOrders);
+
+            const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
+                document.getElementById('kpi-total-users').textContent = snapshot.size;
+            });
+            unsubscribes.push(unsubUsers);
+        }
+
+        function updateChart(statusCounts) {
+             const ctx = document.getElementById('status-chart');
+             if(!ctx) return;
+             if(statusChart) {
+                 statusChart.data.datasets[0].data = Object.values(statusCounts);
+                 statusChart.update();
+                 return;
+             }
+             statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        label: 'Status',
+                        data: Object.values(statusCounts),
+                        backgroundColor: [ '#facc15', '#3b82f6', '#22c55e' ],
+                        borderColor: '#1f2937',
+                        borderWidth: 4,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#d1d5db',
+                                boxWidth: 15,
+                                padding: 15,
+                            }
+                        }
+                    }
+                }
+            });
+        }
         
-        function loadAdminForms(container) {
-            const q = query(collection(db, `artifacts/${appId}/public/data/maintenance_forms`));
-            const unsub = onSnapshot(q, (snapshot) => {
-                container.innerHTML = snapshot.empty ? '<p class="text-gray-500">Nenhuma ficha encontrada.</p>' : '<div class="space-y-3"></div>';
-                if(snapshot.empty) return;
-                const list = container.querySelector('.space-y-3');
-                snapshot.docs.sort((a,b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0)).forEach(doc => {
-                    const form = doc.data();
+        // CORRIGIDO: Esta função agora filtra as fichas no lado do cliente para garantir que todas sejam exibidas corretamente.
+        function loadAdminOrders(container) {
+            container.innerHTML = `
+                <div class="flex items-center justify-end mb-4">
+                     <label class="flex items-center gap-2 text-sm text-gray-400"><input type="checkbox" id="show-archived-toggle" class="w-4 h-4 text-orange-600 bg-gray-700 border-gray-600 rounded focus:ring-orange-500">Mostrar arquivadas</label>
+                </div>
+                <div id="admin-orders-list" class="space-y-3"></div>
+            `;
+
+            const listContainer = document.getElementById('admin-orders-list');
+            const toggle = document.getElementById('show-archived-toggle');
+
+            let allOrders = [];
+
+            const renderOrders = () => {
+                const showArchived = toggle.checked;
+                const filteredOrders = allOrders.filter(form => (form.isArchived === true) === showArchived);
+                
+                listContainer.innerHTML = filteredOrders.length === 0 ? '<p class="text-gray-500">Nenhuma ficha encontrada.</p>' : '';
+                
+                filteredOrders.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).forEach(form => {
                     const latest = form.versions['v' + form.latestVersion];
                     const card = document.createElement('div');
-                    card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center hover:bg-gray-700 cursor-pointer";
-                    card.innerHTML = `<div><p class="font-semibold text-orange-500">${latest.tag || 'Sem TAG'} - <span class="font-normal text-gray-300">${latest.equipamento || 'Sem Descrição'}</span></p><p class="text-sm text-gray-400">Por: ${form.creatorName} <span class="text-xs text-gray-500 ml-2">V${form.latestVersion}</span></p></div><i data-lucide="chevron-right" class="w-5 h-5"></i>`;
-                    card.onclick = () => viewFormDetails(doc.id);
-                    list.appendChild(card);
+                    card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
+                    
+                    let buttons = `<button title="Ver Detalhes" class="action-button view-details-button p-2 rounded-full text-gray-300 bg-gray-700 hover:bg-gray-600 transition-all duration-200"><i data-lucide="eye" class="w-4 h-4"></i></button>`;
+                    if (form.status === 'Finalizada' && !form.isArchived) {
+                        buttons += `<button title="Arquivar Ficha" class="action-button archive-order-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="archive" class="w-4 h-4"></i></button>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="flex-grow">
+                            <p class="font-semibold text-orange-500">${latest.tag || 'Sem TAG'} - <span class="font-normal text-gray-300">${latest.equipamento || 'Sem Descrição'}</span></p>
+                            <p class="text-sm text-gray-400">Por: ${form.creatorName} | Status: <span class="font-semibold ${statusStyles[form.status]?.split(' ')[1] || ''}">${form.status}</span></p>
+                        </div>
+                        <div class="flex items-center gap-2">${buttons}</div>`;
+                    
+                    card.querySelector('.view-details-button').onclick = () => viewFormDetails(form.id);
+                    if(card.querySelector('.archive-order-button')) {
+                        card.querySelector('.archive-order-button').onclick = () => archiveOrder(form.id);
+                    }
+
+                    listContainer.appendChild(card);
                 });
                 createIconsSafely();
+            };
+            
+            const q = query(collection(db, `artifacts/${appId}/public/data/maintenance_forms`));
+            const unsub = onSnapshot(q, (snapshot) => {
+                allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderOrders();
             });
             unsubscribes.push(unsub);
+
+            toggle.addEventListener('change', renderOrders);
+        }
+
+        async function archiveOrder(formId) {
+             showConfirmationModal(
+                'Arquivar Ficha',
+                'Tem certeza que deseja arquivar esta ficha? Ela não aparecerá mais na lista principal.',
+                async () => {
+                     try {
+                        const formDocRef = doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId);
+                        await updateDoc(formDocRef, { isArchived: true });
+                        showSuccess('Ficha arquivada com sucesso!');
+                    } catch (e) {
+                        showError('Erro ao arquivar a ficha.');
+                    }
+                }
+            );
         }
 
         function loadAdminUsers(container) {
@@ -535,7 +703,7 @@
                     const card = document.createElement('div');
                     card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
                     card.innerHTML = `
-                        <div>
+                        <div class="flex-grow">
                             <p class="font-semibold text-gray-100">${user.name} <span class="text-xs ml-2 px-2 py-0.5 rounded-full ${user.role === 'admin' ? 'bg-orange-600' : 'bg-gray-600'}">${user.role}</span></p>
                             <p class="text-sm text-gray-400">${user.email}</p>
                         </div>
@@ -554,15 +722,18 @@
         }
 
         async function deleteUser(userId, userName) {
-            if (window.confirm(`Tem certeza que deseja EXCLUIR PERMANENTEMENTE o usuário "${userName}"?\n\nEsta ação removerá os dados do usuário do sistema e sua conta de login. A ação não pode ser desfeita.`)) {
-                try {
-                    await deleteDoc(doc(db, 'users', userId));
-                    showSuccess(`Usuário "${userName}" excluído. A conta de login será removida em breve pela rotina de backend.`);
-                } catch (e) {
-                    showError("Erro ao excluir o documento do usuário.");
-                    console.error("Erro ao excluir usuário do Firestore:", e);
+            showConfirmationModal(
+                'Excluir Usuário',
+                `Tem certeza que deseja EXCLUIR PERMANENTEMENTE o usuário "${userName}"? Esta ação não pode ser desfeita.`,
+                async () => {
+                    try {
+                        await deleteDoc(doc(db, 'users', userId));
+                        showSuccess(`Usuário "${userName}" excluído.`);
+                    } catch (e) {
+                        showError("Erro ao excluir o documento do usuário.");
+                    }
                 }
-            }
+            );
         }
         
         function manageUserPermissions(user) {
@@ -586,25 +757,52 @@
                     await updateDoc(userDocRef, { role: newRole, permissions: newPermissions });
                     showSuccess("Permissões atualizadas com sucesso!");
                     closeModal();
-                } catch(e) {
-                    showError("Erro ao atualizar permissões.");
-                    console.error(e);
-                }
+                } catch(e) { showError("Erro ao atualizar permissões."); }
             };
         }
         
         function loadAssetList(container, collectionName, isAdmin) {
+            container.innerHTML = `<div class="mb-4"><input type="search" id="search-${collectionName}" placeholder="Buscar por nome, tag ou código..." class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md"></div><div id="list-${collectionName}" class="space-y-2 mt-4"></div>`;
+            const listContainer = document.getElementById(`list-${collectionName}`);
+            const searchInput = document.getElementById(`search-${collectionName}`);
+            
+            let allDocs = [];
+
             const q = collection(db, `artifacts/${appId}/public/data/${collectionName}`);
             const unsub = onSnapshot(q, (snapshot) => {
-                container.innerHTML = snapshot.empty ? '<p class="text-gray-500 mt-4">Nenhum item encontrado.</p>' : '<div class="space-y-2 mt-4"></div>';
-                if(snapshot.empty) return;
-                const list = container.querySelector('.space-y-2');
-                snapshot.forEach(doc => {
-                    list.appendChild(renderAssetCard(doc.id, doc.data(), collectionName.slice(0, -1), isAdmin));
-                });
-                createIconsSafely();
+                allDocs = snapshot.docs;
+                renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, searchInput.value);
             });
             unsubscribes.push(unsub);
+            
+            searchInput.addEventListener('input', (e) => {
+                 renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, e.target.value);
+            });
+        }
+
+        function renderFilteredAssets(docs, container, type, isAdmin, filter) {
+            container.innerHTML = '';
+            const lowercasedFilter = filter.toLowerCase();
+            
+            const filteredDocs = docs.filter(doc => {
+                if (!lowercasedFilter) return true;
+                const data = doc.data();
+                switch(type) {
+                    case 'machine': return (data.tag?.toLowerCase() || '').includes(lowercasedFilter) || (data.description?.toLowerCase() || '').includes(lowercasedFilter);
+                    case 'tool': return (data.name?.toLowerCase() || '').includes(lowercasedFilter);
+                    case 'part': return (data.description?.toLowerCase() || '').includes(lowercasedFilter) || (data.code?.toLowerCase() || '').includes(lowercasedFilter);
+                    default: return true;
+                }
+            });
+
+            if (filteredDocs.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 mt-4">Nenhum item encontrado.</p>';
+            } else {
+                filteredDocs.forEach(doc => {
+                    container.appendChild(renderAssetCard(doc.id, doc.data(), type, isAdmin));
+                });
+            }
+            createIconsSafely();
         }
         
         function renderAssetCard(id, data, type, isAdmin) {
@@ -616,7 +814,9 @@
             }
             const item = document.createElement('div');
             item.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
-            item.innerHTML = `<div>${content}</div> ${isAdmin ? `<div class="flex items-center gap-3">
+            item.innerHTML = `
+                <div class="flex-grow">${content}</div> 
+                ${isAdmin ? `<div class="flex items-center gap-3">
                            <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i></button>
                            <button title="Excluir" class="action-button delete-asset-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>` : ''}`;
@@ -674,12 +874,18 @@
         }
         
         async function deleteAsset(collectionName, id) {
-            if (window.confirm("Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.")) {
-                try {
-                    await deleteDoc(doc(db, `artifacts/${appId}/public/data/${collectionName}`, id));
-                    showSuccess("Item excluído com sucesso.");
-                } catch(e) { console.error("Erro ao excluir:", e); showError("Falha ao excluir o item."); }
-            }
+             showConfirmationModal(
+                'Excluir Item',
+                'Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.',
+                async () => {
+                    try {
+                        await deleteDoc(doc(db, `artifacts/${appId}/public/data/${collectionName}`, id));
+                        showSuccess("Item excluído com sucesso.");
+                    } catch(e) {
+                        showError("Falha ao excluir o item.");
+                    }
+                }
+            );
         }
         
         // --- Funções do Formulário de Manutenção ---
@@ -693,7 +899,6 @@
                 attachFormListeners(assets);
             } catch(e) {
                 showError("Erro ao carregar dados do formulário.");
-                console.error(e);
             }
         });
 
@@ -713,7 +918,6 @@
                 } else showError("Ficha não encontrada.");
             } catch (e) {
                 showError("Erro ao carregar dados do formulário.");
-                console.error(e);
             }
         }
 
@@ -800,6 +1004,7 @@
                         createdAt: serverTimestamp(),
                         latestVersion: 1,
                         status: 'Aguardando',
+                        isArchived: false,
                         versions: { v1: data }
                     });
                     showSuccess("Ficha criada com sucesso!");
@@ -824,7 +1029,7 @@
             return `<tr class="border-b border-gray-700"><td class="p-2"><select name="pecaId" class="part-select w-full p-2 bg-gray-900 border border-gray-600 rounded"><option value="">Selecione</option>${partOptions}</select></td><td class="p-2"><input type="text" name="pecaCodigo" class="w-full p-2 bg-gray-800 border border-gray-600 rounded" value="${item.codigo || ''}" readonly></td><td class="p-2"><input type="number" name="pecaQtd" class="w-full p-2 bg-gray-900 border border-gray-600 rounded" value="${item.qtd || ''}"></td><td class="p-2 text-center"><button type="button" class="remove-row-button text-red-500 hover:text-red-700 text-2xl">&times;</button></td></tr>`;
         }
         function createModalHTML(title, content, footer) {
-            return `<div class="modal-backdrop" id="modal-backdrop"><div class="bg-gray-800 rounded-xl shadow-2xl w-11/12 md:w-3/4 lg:w-2/3 modal-content flex flex-col border border-gray-700"><header class="p-4 border-b border-gray-700 flex justify-between items-center"><h3 class="text-xl font-bold text-gray-100">${title}</h3><button id="close-modal-button" class="text-gray-400 hover:text-red-500 text-2xl">&times;</button></header><main class="p-6 overflow-y-auto">${content}</main><footer class="p-4 border-t border-gray-700 bg-gray-900/50 flex justify-end">${footer}</footer></div></div>`;
+            return `<div class="modal-backdrop" id="modal-backdrop"><div class="bg-gray-800 rounded-xl shadow-2xl w-11/12 md:w-1/2 lg:w-1/3 modal-content flex flex-col border border-gray-700"><header class="p-4 border-b border-gray-700 flex justify-between items-center"><h3 class="text-xl font-bold text-gray-100">${title}</h3><button id="close-modal-button" class="text-gray-400 hover:text-red-500 text-2xl">&times;</button></header><main class="p-6 overflow-y-auto">${content}</main><footer class="p-4 border-t border-gray-700 bg-gray-900/50 flex justify-end">${footer}</footer></div></div>`;
         }
         async function viewFormDetails(formId) {
             const docRef = doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId);
