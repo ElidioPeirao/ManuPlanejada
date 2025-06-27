@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Laudos Técnicos</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to match the brand */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for a better look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #F97316;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #EA580C;
+        }
+        .brand-orange {
+            color: #F97316;
+        }
+        .bg-brand-orange {
+            background-color: #F97316;
+        }
+        .bg-brand-orange-hover:hover {
+            background-color: #EA580C;
+        }
+        .border-brand-orange {
+            border-color: #F97316;
+        }
+        /* Style for the print-only area */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #area-impressao, #area-impressao * {
+                visibility: visible;
+            }
+            #area-impressao {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Modal for validation messages -->
+    <div id="modal" class="no-print fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Atenção!</h3>
+            <p id="modal-message" class="text-gray-600 mb-6"></p>
+            <button id="modal-close" class="bg-brand-orange text-white font-bold py-2 px-6 rounded-lg bg-brand-orange-hover">
+                Entendi
+            </button>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+        <!-- Header with Logo -->
+        <header class="text-center mb-8 no-print">
+            <img src="https://i.imgur.com/EDw5HWL.png" alt="Logo Sistema" class="mx-auto h-20 mb-4">
+            <h1 class="text-3xl sm:text-4xl font-bold brand-orange">Gerador de Laudo Técnico</h1>
+            <p class="text-gray-400 mt-2">Preencha os campos abaixo para gerar um novo laudo de equipamento.</p>
+        </header>
+
+        <!-- Form Section -->
+        <form id="laudo-form" class="bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl space-y-8 no-print">
+
+            <!-- Section 1: Customer and Equipment Information -->
+            <fieldset class="border-t-2 border-gray-700 pt-6">
+                <legend class="text-xl font-semibold mb-4 px-2 brand-orange">1. Informações do Equipamento</legend>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="cliente" class="block text-sm font-medium text-gray-300 mb-1">Nome do Cliente</label>
+                        <input type="text" id="cliente" name="cliente" class="w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Ex: Indústria XYZ">
+                    </div>
+                    <div>
+                        <label for="equipamento" class="block text-sm font-medium text-gray-300 mb-1">Equipamento/Máquina</label>
+                        <input type="text" id="equipamento" name="equipamento" class="w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Ex: Torno Mecânico">
+                    </div>
+                    <div>
+                        <label for="marca" class="block text-sm font-medium text-gray-300 mb-1">Marca</label>
+                        <input type="text" id="marca" name="marca" class="w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Ex: Nardini">
+                    </div>
+                    <div>
+                        <label for="modelo" class="block text-sm font-medium text-gray-300 mb-1">Modelo</label>
+                        <input type="text" id="modelo" name="modelo" class="w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Ex: ND-250">
+                    </div>
+                     <div>
+                        <label for="numero-serie" class="block text-sm font-medium text-gray-300 mb-1">Número de Série</label>
+                        <input type="text" id="numero-serie" name="numero-serie" class="w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Ex: 12345ABC">
+                    </div>
+                     <div>
+                        <label for="data-entrada" class="block text-sm font-medium text-gray-300 mb-1">Data de Entrada</label>
+                        <input type="date" id="data-entrada" name="data-entrada" class="w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500" style="color-scheme: dark;">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Section 2: Disassembly and Tools -->
+            <fieldset class="border-t-2 border-gray-700 pt-6">
+                <legend class="text-xl font-semibold mb-4 px-2 brand-orange">2. Análise e Desmontagem</legend>
+                <div>
+                    <label for="ferramentas" class="block text-sm font-medium text-gray-300 mb-1">Ferramentas Utilizadas</label>
+                    <textarea id="ferramentas" name="ferramentas" rows="4" class="w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Liste as ferramentas usadas, por exemplo:&#10;- Chave de fenda Phillips&#10;- Multímetro Digital&#10;- Jogo de chaves Allen"></textarea>
+                </div>
+            </fieldset>
+
+            <!-- Section 3: Technical Diagnosis -->
+            <fieldset class="border-t-2 border-gray-700 pt-6">
+                <legend class="text-xl font-semibold mb-4 px-2 brand-orange">3. Diagnóstico Técnico</legend>
+                <div>
+                    <label for="diagnostico" class="block text-sm font-medium text-gray-300 mb-1">Observações e Diagnóstico do Defeito</label>
+                    <textarea id="diagnostico" name="diagnostico" rows="8" class="w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Descreva em detalhes o defeito encontrado, as peças danificadas, os testes realizados e a solução proposta."></textarea>
+                </div>
+            </fieldset>
+
+            <!-- Action Button -->
+            <div class="text-center pt-4">
+                <button type="submit" class="w-full sm:w-auto bg-brand-orange text-white font-bold py-3 px-10 rounded-lg shadow-lg transform transition-transform duration-200 hover:scale-105 bg-brand-orange-hover">
+                    Gerar Laudo
+                </button>
+            </div>
+        </form>
+
+        <!-- Generated Report Section (initially hidden, becomes visible for printing) -->
+        <div id="laudo-output" class="invisible">
+            <div id="area-impressao" class="bg-white text-gray-800 p-8 sm:p-10 rounded-lg shadow-2xl">
+                 <!-- Report Header -->
+                <div class="flex justify-between items-start pb-6 border-b-2 border-gray-200">
+                    <img src="https://i.imgur.com/cfXLIEI.png" alt="Logo Laudo" class="h-20">
+                    <div class="text-right">
+                        <h2 class="text-2xl font-bold text-orange-600">LAUDO TÉCNICO DE AVALIAÇÃO</h2>
+                        <p class="text-sm">Data do Laudo: <span id="data-laudo-val"></span></p>
+                    </div>
+                </div>
+                
+                <!-- Report Content -->
+                <div class="mt-8 space-y-6">
+                    <!-- Customer and Equipment Details -->
+                    <div>
+                        <h3 class="text-lg font-semibold border-b border-gray-300 pb-2 mb-3 text-orange-600">Dados do Cliente e Equipamento</h3>
+                        <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                            <p><strong>Cliente:</strong> <span id="cliente-val"></span></p>
+                            <p><strong>Equipamento:</strong> <span id="equipamento-val"></span></p>
+                             <p><strong>Marca:</strong> <span id="marca-val"></span></p>
+                            <p><strong>Modelo:</strong> <span id="modelo-val"></span></p>
+                            <p><strong>Nº de Série:</strong> <span id="numero-serie-val"></span></p>
+                            <p><strong>Data de Entrada:</strong> <span id="data-entrada-val"></span></p>
+                        </div>
+                    </div>
+                    <!-- Tools Used -->
+                    <div>
+                        <h3 class="text-lg font-semibold border-b border-gray-300 pb-2 mb-3 text-orange-600">Ferramentas Utilizadas</h3>
+                        <pre id="ferramentas-val" class="whitespace-pre-wrap font-sans text-sm bg-gray-50 p-3 rounded-md"></pre>
+                    </div>
+                    <!-- Diagnosis -->
+                    <div>
+                        <h3 class="text-lg font-semibold border-b border-gray-300 pb-2 mb-3 text-orange-600">Diagnóstico Técnico</h3>
+                        <p id="diagnostico-val" class="text-sm leading-relaxed"></p>
+                    </div>
+                </div>
+
+                <!-- Footer / Signature -->
+                <div class="mt-20 pt-10 text-center">
+                    <div class="inline-block">
+                        <p class="border-t-2 border-gray-400 px-12 pt-2">Assinatura do Técnico Responsável</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Print Button, only visible after generation -->
+        <div id="print-button-container" class="text-center mt-8 no-print hidden">
+            <button onclick="window.print()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-10 rounded-lg shadow-lg transform transition-transform duration-200 hover:scale-105">
+                Imprimir / Salvar PDF
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Set default date for date input
+        document.getElementById('data-entrada').valueAsDate = new Date();
+        
+        // Modal elements
+        const modal = document.getElementById('modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalClose = document.getElementById('modal-close');
+
+        // Function to show the modal
+        function showModal(message) {
+            modalMessage.textContent = message;
+            modal.classList.remove('hidden');
+        }
+
+        // Event listener to close the modal
+        modalClose.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        // Handle form submission
+        const form = document.getElementById('laudo-form');
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            // Get form values
+            const cliente = document.getElementById('cliente').value;
+            const equipamento = document.getElementById('equipamento').value;
+            const diagnostico = document.getElementById('diagnostico').value;
+            
+            // --- UPDATED VALIDATION ---
+            if (!cliente || !equipamento || !diagnostico) {
+                showModal('Por favor, preencha todos os campos principais: Cliente, Equipamento e Diagnóstico Técnico.');
+                return;
+            }
+            
+            // Get other form values
+            const marca = document.getElementById('marca').value;
+            const modelo = document.getElementById('modelo').value;
+            const numeroSerie = document.getElementById('numero-serie').value;
+            const dataEntrada = document.getElementById('data-entrada').value;
+            const ferramentas = document.getElementById('ferramentas').value;
+
+            // Populate the report section with the values
+            document.getElementById('cliente-val').textContent = cliente || "Não informado";
+            document.getElementById('equipamento-val').textContent = equipamento || "Não informado";
+            document.getElementById('marca-val').textContent = marca || "Não informado";
+            document.getElementById('modelo-val').textContent = modelo || "Não informado";
+            document.getElementById('numero-serie-val').textContent = numeroSerie || "Não informado";
+            
+            // Format date for display
+            const [year, month, day] = dataEntrada.split('-');
+            document.getElementById('data-entrada-val').textContent = `${day}/${month}/${year}`;
+            
+            document.getElementById('ferramentas-val').textContent = ferramentas || "Nenhuma ferramenta listada.";
+            document.getElementById('diagnostico-val').textContent = diagnostico;
+
+            // Set current date on the report
+            const hoje = new Date();
+            document.getElementById('data-laudo-val').textContent = hoje.toLocaleDateString('pt-BR');
+
+            // Hide the form and show the print button
+            document.getElementById('laudo-form').classList.add('hidden');
+            document.getElementById('print-button-container').classList.remove('hidden');
+
+            // Make the output visible for printing, but keep it out of the normal flow
+            document.getElementById('laudo-output').classList.remove('invisible');
+
+            // Scroll to the top to see the print button
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    </script>
+</body>
+</html>
