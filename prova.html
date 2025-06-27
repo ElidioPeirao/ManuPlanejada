@@ -36,9 +36,21 @@
         .tab-content.active {
             display: grid;
         }
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
+    
+    <canvas id="confetti-canvas"></canvas>
 
     <div id="app" class="container mx-auto p-4 md:p-8 max-w-7xl">
 
@@ -59,12 +71,12 @@
             </div>
         </div>
 
-        <!-- Modal Genérico (Recuperar Senha, Editar Turma) -->
+        <!-- Modal Genérico (Recuperar Senha, Editar Turma, Feedback de Nota) -->
         <div id="genericModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
             <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full">
                 <div class="flex justify-between items-center mb-4">
                     <h3 id="genericModalTitle" class="text-xl font-bold"></h3>
-                    <button id="genericModalClose" class="text-gray-400 hover:text-white">&times;</button>
+                    <button id="genericModalClose" class="text-gray-400 hover:text-white text-2xl">&times;</button>
                 </div>
                 <div id="genericModalContent"></div>
             </div>
@@ -78,7 +90,7 @@
                 <div class="text-left">
                     <div class="mb-4">
                         <label for="loginEmail" class="block text-sm font-medium text-gray-300 mb-2">Email:</label>
-                        <input type="email" id="loginEmail" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="seu.email@exemplo.com">
+                        <input type="email" id="loginEmail" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500" placeholder="email@exemplo.com">
                     </div>
                     <div class="mb-4">
                         <label for="loginPassword" class="block text-sm font-medium text-gray-300 mb-2">Senha:</label>
@@ -721,13 +733,15 @@
                 assessmentsWithData.forEach((assessment) => {
                     const progress = assessment.studentCount > 0 ? (assessment.submissionCount / assessment.studentCount) * 100 : 0;
                     const progressColor = progress === 100 ? 'bg-green-600' : 'bg-orange-600';
+                    const creationDate = assessment.createdAt && assessment.createdAt.toDate ? assessment.createdAt.toDate().toLocaleString('pt-BR') : 'Data Indisponível';
 
                     listEl.innerHTML += `
                         <div class="bg-gray-800 p-5 rounded-xl shadow-md flex flex-col justify-between">
                             <div>
                                 <div class="relative">
                                     <h3 class="font-bold text-lg text-white mb-1">${assessment.title}</h3>
-                                    <p class="text-sm text-gray-400 mb-4">Turma: ${assessment.turmaName || 'N/A'}</p>
+                                    <p class="text-sm text-gray-400">Turma: ${assessment.turmaName || 'N/A'}</p>
+                                    <p class="text-xs text-gray-500 mb-2">Criado em: ${creationDate}</p>
                                     <div class="absolute top-0 right-0 flex gap-2">
                                         <button data-id="${assessment.id}" class="edit-assessment-btn bg-cyan-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-cyan-700" title="Editar Avaliação">
                                             <i class="fas fa-pencil-alt fa-sm"></i>
@@ -1062,10 +1076,10 @@
                 let html = `<div class="overflow-x-auto"><table class="w-full text-left table-auto"><thead><tr class="bg-gray-700">
                                 <th class="p-3">Aluno</th>`;
                 assessmentData.criteria.forEach(c => html += `<th class="p-3">${c.label} (${c.weight}${assessmentData.gradingType === 'percentage' ? '%' : 'pts'})</th>`);
-                html += `<th class="p-3">Hash do Arquivo</th><th class="p-3 text-center">Nota</th></tr></thead><tbody>`;
+                html += `<th class="p-3">Data de Envio</th><th class="p-3">Data do Ficheiro</th><th class="p-3">Hash do Arquivo</th><th class="p-3 text-center">Nota</th></tr></thead><tbody>`;
 
                 if (submissions.length === 0) {
-                    html += `<tr><td colspan="${assessmentData.criteria.length + 3}" class="text-center p-4 text-gray-400">Nenhuma resposta enviada.</td></tr>`;
+                    html += `<tr><td colspan="${assessmentData.criteria.length + 5}" class="text-center p-4 text-gray-400">Nenhuma resposta enviada.</td></tr>`;
                 } else {
                     submissions.sort((a, b) => a.studentName.localeCompare(b.studentName)).forEach(sub => {
                         const isCopied = sub.fileHash && hashCounts[sub.fileHash] > 1;
@@ -1097,8 +1111,13 @@
                             finalScoreDisplay = `${finalScore.toFixed(2)} / ${assessmentData.maxGrade.toFixed(2)}`;
                         }
 
+                        const submissionDate = sub.submittedAt && sub.submittedAt.toDate ? sub.submittedAt.toDate().toLocaleString('pt-BR') : 'N/A';
+                        const fileDate = sub.fileLastModified && sub.fileLastModified.toDate ? sub.fileLastModified.toDate().toLocaleString('pt-BR') : 'N/A';
                         const fileHashShort = sub.fileHash ? sub.fileHash.substring(0, 10) + '...' : 'N/A';
-                        html += `<td class="p-3 font-mono text-sm" title="${sub.fileHash || ''}">${fileHashShort}</td>
+
+                        html += `<td class="p-3 text-sm">${submissionDate}</td>
+                                     <td class="p-3 text-sm">${fileDate}</td>
+                                     <td class="p-3 font-mono text-sm" title="${sub.fileHash || ''}">${fileHashShort}</td>
                                      <td class="p-3 text-center font-bold text-green-400">${finalScoreDisplay}</td></tr>`;
                     });
                 }
@@ -1174,6 +1193,11 @@
             const respondidasEl = document.getElementById('respondidas');
             const perdidasEl = document.getElementById('perdidas');
             abertasEl.innerHTML = respondidasEl.innerHTML = perdidasEl.innerHTML = '<div class="loader col-span-full"></div>';
+
+            if (!currentUser.turmaId) {
+                abertasEl.innerHTML = respondidasEl.innerHTML = perdidasEl.innerHTML = `<p class="text-gray-400 col-span-full text-center">Você não está associado a nenhuma turma.</p>`;
+                return;
+            }
 
             try {
                 const assessmentsQuery = query(collection(db, "assessments"), where("turmaId", "==", currentUser.turmaId));
@@ -1263,38 +1287,48 @@
             
             let htmlContent = '';
 
-            if (assessmentData.resultsRevealed) {
-                if(!lastSubmission) {
-                     htmlContent = `<div class="text-center p-4 bg-yellow-900 border-l-4 border-yellow-500 text-yellow-300 rounded-lg"><h3 class="font-bold">Resultados Divulgados</h3><p>Você não enviou uma resposta para esta avaliação.</p></div>`;
+            if (assessmentData.resultsRevealed && lastSubmission) {
+                let resultsHtml = `<div class="text-center"><h3 class="text-xl font-bold mb-4">Seu Resultado Final</h3><div class="space-y-4">`;
+                let totalScore = 0;
+                assessmentData.criteria.forEach((criterion, index) => {
+                    const studentAnswer = lastSubmission.answers[index];
+                    let isCorrect = false;
+                    if (criterion.type === 'numeric') {
+                        const sVal = parseFloat(studentAnswer), cVal = parseFloat(criterion.correctAnswer), tVal = parseFloat(criterion.toleranceValue);
+                        isCorrect = criterion.toleranceType === 'percentage' ? Math.abs(sVal - cVal) <= (cVal * (tVal / 100)) : Math.abs(sVal - cVal) <= tVal;
+                    } else {
+                        isCorrect = studentAnswer.trim().toLowerCase() === criterion.correctAnswer.trim().toLowerCase();
+                    }
+                    if(isCorrect) {
+                        totalScore += criterion.weight || 0;
+                    }
+                    resultsHtml += `<div class="p-3 rounded-lg ${isCorrect ? 'bg-green-900 border border-green-700' : 'bg-red-900 border border-red-700'}"><p class="font-semibold">${criterion.label}: ${isCorrect ? '<span class="text-green-400">Correto</span>' : '<span class="text-red-400">Incorreto</span>'}</p><p class="text-sm text-gray-400">Sua resposta: <span class="font-mono text-white">${studentAnswer}</span> | Correta: <span class="font-mono text-white">${criterion.correctAnswer}</span></p></div>`;
+                });
+                
+                let finalScore;
+                let finalScoreDisplay;
+                if (assessmentData.gradingType === 'points') {
+                    finalScore = totalScore;
+                    finalScoreDisplay = `${finalScore.toFixed(2)} / ${assessmentData.maxGrade.toFixed(2)}`;
                 } else {
-                     let resultsHtml = `<div class="text-center"><h3 class="text-xl font-bold mb-4">Seu Resultado Final</h3><div class="space-y-4">`;
-                     let totalScore = 0;
-                     assessmentData.criteria.forEach((criterion, index) => {
-                        const studentAnswer = lastSubmission.answers[index];
-                        let isCorrect = false;
-                        if (criterion.type === 'numeric') {
-                            const sVal = parseFloat(studentAnswer), cVal = parseFloat(criterion.correctAnswer), tVal = parseFloat(criterion.toleranceValue);
-                            isCorrect = criterion.toleranceType === 'percentage' ? Math.abs(sVal - cVal) <= (cVal * (tVal / 100)) : Math.abs(sVal - cVal) <= tVal;
-                        } else {
-                            isCorrect = studentAnswer.trim().toLowerCase() === criterion.correctAnswer.trim().toLowerCase();
-                        }
-                        if(isCorrect) {
-                            totalScore += criterion.weight || 0;
-                        }
-                        resultsHtml += `<div class="p-3 rounded-lg ${isCorrect ? 'bg-green-900 border border-green-700' : 'bg-red-900 border border-red-700'}"><p class="font-semibold">${criterion.label}: ${isCorrect ? '<span class="text-green-400">Correto</span>' : '<span class="text-red-400">Incorreto</span>'}</p><p class="text-sm text-gray-400">Sua resposta: <span class="font-mono text-white">${studentAnswer}</span> | Correta: <span class="font-mono text-white">${criterion.correctAnswer}</span></p></div>`;
-                     });
-                     
-                     let finalScoreDisplay;
-                     if (assessmentData.gradingType === 'points') {
-                        finalScoreDisplay = `${totalScore.toFixed(2)} / ${assessmentData.maxGrade.toFixed(2)}`;
-                     } else {
-                        const finalScore = (totalScore / 100) * assessmentData.maxGrade;
-                        finalScoreDisplay = `${finalScore.toFixed(2)} / ${assessmentData.maxGrade.toFixed(2)}`;
-                     }
-
-                     resultsHtml += `</div><div class="mt-6 p-4 rounded-lg font-bold text-2xl bg-indigo-800 text-indigo-300">Nota Final: ${finalScoreDisplay}</div>`;
-                     htmlContent = resultsHtml;
+                    finalScore = (totalScore / 100) * assessmentData.maxGrade;
+                    finalScoreDisplay = `${finalScore.toFixed(2)} / ${assessmentData.maxGrade.toFixed(2)}`;
                 }
+
+                resultsHtml += `</div><div class="mt-6 p-4 rounded-lg font-bold text-2xl bg-indigo-800 text-indigo-300">Nota Final: ${finalScoreDisplay}</div>`;
+                htmlContent = resultsHtml;
+
+                // Show feedback modal after rendering results
+                setTimeout(() => {
+                    if(finalScore >= 7) {
+                        showResultFeedback(true, finalScoreDisplay);
+                    } else {
+                        showResultFeedback(false, finalScoreDisplay);
+                    }
+                }, 500);
+
+            } else if (assessmentData.resultsRevealed && !lastSubmission) {
+                htmlContent = `<div class="text-center p-4 bg-yellow-900 border-l-4 border-yellow-500 text-yellow-300 rounded-lg"><h3 class="font-bold">Resultados Divulgados</h3><p>Você não enviou uma resposta para esta avaliação.</p></div>`;
             } else if (new Date() > deadline) {
                 htmlContent = `<div class="text-center p-4 bg-red-900 border-l-4 border-red-500 text-red-300 rounded-lg"><h3 class="font-bold">Prazo Encerrado</h3><p>O prazo para responder esta avaliação já terminou.</p></div>`;
             } else if (attemptsMade >= attemptsAllowed) {
@@ -1329,6 +1363,7 @@
                     const answers = Array.from(e.target.querySelectorAll('input[data-index]')).map(input => input.value);
                     const fileInput = document.getElementById('studentFile');
                     const file = fileInput.files[0];
+                    const fileLastModified = file ? file.lastModified : null;
                     
                     if (answers.some(a => !a) || (assessmentData.fileRequired && !file)) {
                         showNotification("Preencha todos os campos e anexe o arquivo obrigatório.", true);
@@ -1338,7 +1373,9 @@
                     const fileHash = await calculateFileHash(file);
                     await addDoc(collection(db, 'assessments', assessmentId, 'submissions'), {
                         studentId: currentUser.uid, studentName: currentUser.name,
-                        answers, fileHash, submittedAt: new Date(), gradeViewed: false
+                        answers, fileHash, submittedAt: Timestamp.now(), 
+                        fileLastModified: fileLastModified ? Timestamp.fromMillis(fileLastModified) : null,
+                        gradeViewed: false
                     });
                     showNotification("Resposta enviada com sucesso!");
                     loadAlunoDashboard();
@@ -1347,6 +1384,76 @@
                      takeAssessment(assessmentId, submissionId);
                 }
             });
+        }
+
+        function showResultFeedback(isSuccess, scoreText) {
+            let title = isSuccess ? "Parabéns!" : "Continue a Esforçar-se";
+            let content = `
+                <div class="text-center">
+                    <p class="text-4xl mb-4">${isSuccess ? '🎉' : '📚'}</p>
+                    <p class="text-lg text-gray-300 mb-2">${isSuccess ? 'Excelente trabalho! Você alcançou uma ótima nota.' : 'Não desanime! Use esta oportunidade para aprender e melhorar.'}</p>
+                    <p class="text-xl font-bold ${isSuccess ? 'text-green-400' : 'text-yellow-400'}">Sua nota: ${scoreText}</p>
+                    <button id="closeFeedbackBtn" class="mt-6 w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-500">Fechar</button>
+                </div>
+            `;
+            openGenericModal(title, content);
+            if (isSuccess) {
+                startConfetti();
+            }
+            document.getElementById('closeFeedbackBtn').addEventListener('click', closeGenericModal);
+        }
+
+        // --- Lógica de Confetes ---
+        const confettiCanvas = document.getElementById('confetti-canvas');
+        const confettiCtx = confettiCanvas.getContext('2d');
+        let confettiParticles = [];
+
+        function startConfetti() {
+            confettiCanvas.style.display = 'block';
+            confettiParticles = [];
+            const particleCount = 200;
+            const colors = ['#fde047', '#f97316', '#a3e635', '#22c55e', '#2dd4bf', '#38bdf8', '#818cf8', '#d946ef'];
+
+            for (let i = 0; i < particleCount; i++) {
+                confettiParticles.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * -window.innerHeight,
+                    w: Math.random() * 10 + 5,
+                    h: Math.random() * 10 + 5,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speed: Math.random() * 3 + 2,
+                    tilt: Math.random() * 10 - 10,
+                    tiltAngle: 0,
+                    tiltAngleIncrement: Math.random() * 0.07 + 0.05
+                });
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            confettiCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+            if (confettiParticles.length === 0) {
+                confettiCanvas.style.display = 'none';
+                return;
+            };
+
+            confettiParticles.forEach((p, i) => {
+                p.y += p.speed;
+                p.tiltAngle += p.tiltAngleIncrement;
+                p.x += Math.sin(p.tiltAngle);
+                p.tilt = Math.sin(p.tiltAngle) * 15;
+                
+                confettiCtx.fillStyle = p.color;
+                confettiCtx.beginPath();
+                confettiCtx.rect(p.x, p.y, p.w, p.h);
+                confettiCtx.fill();
+
+                if (p.y > window.innerHeight) {
+                    confettiParticles.splice(i, 1);
+                }
+            });
+
+            requestAnimationFrame(animateConfetti);
         }
 
         // --- Back Buttons ---
