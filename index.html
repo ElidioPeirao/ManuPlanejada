@@ -1,178 +1,104 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EProjects - Controle de Manutenção</title>
+    <title>Sistema de Gestão</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase (versões mais recentes) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827; /* bg-gray-900 */
+            /* PLANO DE FUNDO PONTILHADO */
+            background-color: #0d1117; /* Cor de fundo escura */
+            background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 1.5rem 1.5rem; /* Espaçamento dos pontos */
         }
-        .modal-backdrop {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex; justify-content: center; align-items: center; z-index: 50;
-            backdrop-filter: blur(4px);
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5); /* Um pouco mais opaco para legibilidade */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: border-color 0.3s;
         }
-        .modal-content { max-height: 90vh; }
-        .form-section-title {
-            font-size: 1.125rem; font-weight: 600; color: #f97316; /* orange-500 */
-            border-bottom: 2px solid #374151; /* gray-700 */
-            padding-bottom: 0.5rem; margin-bottom: 1rem; margin-top: 1.5rem;
+        .glass-input, .glass-select {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
         }
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active {
-            -webkit-box-shadow: 0 0 0 30px #1f2937 inset !important; /* bg-gray-800 */
-            -webkit-text-fill-color: #f3f4f6 !important; /* gray-100 */
+        .glass-input::placeholder, .glass-select::placeholder {
+            color: rgba(255, 255, 255, 0.5);
         }
-        .prose { color: #d1d5db; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-        .auth-card {
-            background-color: #1f2937; /* bg-gray-800 */
-            padding: 2rem;
-            margin-top: 4rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-            border: 1px solid #374151; /* gray-700 */
+        .glass-select option {
+            background: #1e293b; /* slate-800 */
+            color: white;
         }
-        input:read-only:not([type="checkbox"]) {
-            background-color: #374151; /* gray-700 */
+        .tab-button.active {
+            border-color: #818cf8; /* indigo-400 */
+            color: white;
+            background-color: rgba(79, 70, 229, 0.2);
+        }
+        button:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
         }
-        .action-button i {
-             pointer-events: none;
+        /* Estilos para o Modal Customizado */
+        .modal-backdrop {
+            transition: opacity 0.3s ease;
         }
-        .group-header {
-            background-color: #374151; /* gray-700 */
-            color: #f97316; /* orange-500 */
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            margin-top: 1.5rem;
-            margin-bottom: 0.5rem;
+        .modal-content {
+            transition: transform 0.3s ease;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200">
+<body class="text-white">
 
-    <div id="app" class="container mx-auto p-4 md:p-8">
-
-        <div id="auth-container" class="max-w-md mx-auto">
-            <img src="https://i.imgur.com/EDw5HWL.png" alt="Logo da EProjects" class="w-48 mx-auto mb-6">
-            <div id="login-screen" class="auth-card">
-                <h1 class="text-2xl font-bold text-center text-gray-100 mb-6">Acessar Sistema</h1>
-                <form id="login-form" class="space-y-4">
-                    <input type="email" id="login-email" placeholder="E-mail" required class="w-full px-4 py-3 bg-gray-900 text-gray-100 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <input type="password" id="login-password" placeholder="Senha" required class="w-full px-4 py-3 bg-gray-900 text-gray-100 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <button type="submit" class="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-700 transition duration-300">Entrar</button>
-                </form>
-                <p class="text-center text-sm text-gray-400 mt-6">
-                    Não tem uma conta? <button id="show-register" class="font-semibold text-orange-500 hover:underline">Cadastre-se</button>
-                </p>
-            </div>
-            <div id="register-screen" class="auth-card hidden">
-                 <h1 class="text-2xl font-bold text-center text-gray-100 mb-6">Criar Conta</h1>
-                <form id="register-form" class="space-y-4">
-                    <input type="text" id="register-name" placeholder="Nome Completo" required class="w-full px-4 py-3 bg-gray-900 text-gray-100 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <input type="email" id="register-email" placeholder="E-mail" required class="w-full px-4 py-3 bg-gray-900 text-gray-100 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <input type="tel" id="register-phone" placeholder="Número de Celular" required class="w-full px-4 py-3 bg-gray-900 text-gray-100 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <input type="password" id="register-password" placeholder="Senha (mínimo 6 caracteres)" required class="w-full px-4 py-3 bg-gray-900 text-gray-100 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <button type="submit" class="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-700 transition duration-300">Cadastrar</button>
-                </form>
-                <p class="text-center text-sm text-gray-400 mt-6">
-                    Já tem uma conta? <button id="show-login" class="font-semibold text-orange-500 hover:underline">Acesse aqui</button>
-                </p>
-            </div>
-        </div>
-
-        <div id="main-app" class="hidden">
-            <header class="flex flex-wrap justify-between items-center mb-8 pb-4 border-b border-gray-700 gap-4">
-                <div>
-                    <img src="https://i.imgur.com/EDw5HWL.png" alt="Logo da EProjects" class="w-40">
-                    <p class="text-gray-400 mt-2">Bem-vindo, <span id="user-name" class="font-semibold text-orange-500"></span>!</p>
-                </div>
-                 <div>
-                    <p class="text-xs text-right text-gray-500">UID: <span id="user-id-display-main" class="font-mono"></span></p>
-                    <button id="logout-button" class="flex items-center gap-2 bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition duration-300 mt-2">
-                        <i class="fa-solid fa-right-from-bracket w-4 h-4"></i>
-                        <span>Sair</span>
-                    </button>
-                </div>
-            </header>
-
-            <div id="admin-view" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="md:col-span-1">
-                        <nav id="admin-nav" class="space-y-2">
-                            <button data-target="admin-dashboard" class="w-full flex items-center gap-3 p-3 rounded-lg bg-orange-600 text-white font-semibold transition duration-200">
-                                <i class="fa-solid fa-gauge-high w-5 h-5"></i> <span>Dashboard</span>
-                            </button>
-                            <button data-target="admin-orders" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i class="fa-solid fa-file-lines w-5 h-5"></i> <span>Fichas</span>
-                            </button>
-                            <button data-target="admin-users" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i class="fa-solid fa-users w-5 h-5"></i> <span>Usuários</span>
-                            </button>
-                            <button data-target="admin-machines" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i class="fa-solid fa-microchip w-5 h-5"></i> <span>Máquinas</span>
-                            </button>
-                            <button data-target="admin-tools" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i class="fa-solid fa-wrench w-5 h-5"></i> <span>Ferramentas</span>
-                            </button>
-                            <button data-target="admin-parts" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i class="fa-solid fa-cubes w-5 h-5"></i> <span>Peças</span>
-                            </button>
-                             <button data-target="admin-categories" class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700 transition duration-200">
-                                <i class="fa-solid fa-tags w-5 h-5"></i> <span>Categorias</span>
-                            </button>
-                        </nav>
-                    </div>
-                    <div class="md:col-span-3 bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
-                        <div id="admin-dashboard" class="admin-tab-content"></div>
-                        <div id="admin-orders" class="admin-tab-content hidden"></div>
-                        <div id="admin-users" class="admin-tab-content hidden"></div>
-                        <div id="admin-machines" class="admin-tab-content hidden"></div>
-                        <div id="admin-tools" class="admin-tab-content hidden"></div>
-                        <div id="admin-parts" class="admin-tab-content hidden"></div>
-                        <div id="admin-categories" class="admin-tab-content hidden"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="user-view" class="hidden">
-                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-100">Minhas Fichas de Manutenção</h2>
-                    <button id="new-form-button" class="bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700 flex items-center gap-2"><i class="fa-solid fa-plus w-4 h-4"></i> <span>Nova Ficha</span></button>
-                </div>
-                <div id="user-forms-list" class="mb-8 space-y-3"></div>
-                <div id="maintenance-form-container" class="hidden bg-gray-800 p-6 md:p-8 rounded-xl shadow-lg border border-gray-700"></div>
-
-                <div id="user-asset-management" class="mt-12">
-                    <h2 class="text-2xl font-bold text-gray-100 mb-4">Gerenciamento de Ativos</h2>
-                    <div id="user-asset-tabs" class="flex border-b border-gray-700 mb-4"></div>
-                    <div id="user-asset-content" class="bg-gray-800 p-6 rounded-b-xl rounded-r-xl shadow-lg border-t-0 border border-gray-700"></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="modal-container"></div>
+    <!-- ===== TELA DE CARREGAMENTO ===== -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-indigo-400"></div>
+        <p class="text-2xl ml-4">Carregando...</p>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, addDoc, onSnapshot, collection, updateDoc, deleteDoc, query, where, serverTimestamp, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- ===== CONTAINER DE MODAL/ALERTA ===== -->
+    <div id="modal-backdrop" class="modal-backdrop fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-4 hidden opacity-0">
+        <div class="modal-content glass-card w-full max-w-md p-6 rounded-2xl shadow-2xl transform scale-95">
+            <h3 id="modal-title" class="text-2xl font-bold mb-4">Atenção</h3>
+            <div id="modal-message" class="text-white/80 mb-6">Mensagem do modal.</div>
+            <div id="modal-input-container" class="mb-4 hidden">
+                <input type="text" id="modal-input" class="glass-input w-full p-3 rounded-xl" placeholder="Digite para confirmar">
+            </div>
+            <div id="modal-buttons" class="flex justify-end gap-4">
+                <button id="modal-cancel-button" class="bg-white/10 hover:bg-white/20 font-bold py-2 px-6 rounded-xl transition">Cancelar</button>
+                <button id="modal-confirm-button" class="bg-indigo-500 hover:bg-indigo-600 font-bold py-2 px-6 rounded-xl transition">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ===== CONTAINER DE TOAST/NOTIFICAÇÃO ===== -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50"></div>
 
+
+    <!-- Container Principal da Aplicação -->
+    <div id="app-root" class="min-h-screen">
+        <!-- O conteúdo (Login ou App) será injetado aqui pelo JavaScript -->
+    </div>
+
+    <script>
+        // =================================================================================
+        // 🔴 ATENÇÃO: CONFIGURAÇÃO DO FIREBASE E REGRAS DE SEGURANÇA
+        // =================================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyBJOANW80V8EyUQ3LbNqwJ8-91DfIp5ho8",
             authDomain: "gerenciadorturma.firebaseapp.com",
@@ -182,1211 +108,846 @@
             appId: "1:610656492633:web:32a0451c02048b6b1fe548",
             measurementId: "G-5JZXJSMGGL"
         };
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = firebaseConfig.projectId;
 
-        let currentUserData = null;
-        let unsubscribes = [];
-        let fetchedAssets = { machines: [], parts: [], tools: [], categories: [] };
-        let statusChart = null;
-
-        const ui = {
-            authContainer: document.getElementById('auth-container'),
-            loginScreen: document.getElementById('login-screen'),
-            registerScreen: document.getElementById('register-screen'),
-            loginForm: document.getElementById('login-form'),
-            registerForm: document.getElementById('register-form'),
-            showLoginBtn: document.getElementById('show-login'),
-            showRegisterBtn: document.getElementById('show-register'),
-            mainApp: document.getElementById('main-app'),
-            userNameDisplay: document.getElementById('user-name'),
-            userIdDisplay: document.getElementById('user-id-display-main'),
-            logoutButton: document.getElementById('logout-button'),
-            adminView: document.getElementById('admin-view'),
-            userView: document.getElementById('user-view'),
-            newFormButton: document.getElementById('new-form-button'),
-            userFormsList: document.getElementById('user-forms-list'),
-            maintenanceFormContainer: document.getElementById('maintenance-form-container'),
-            userAssetManagement: document.getElementById('user-asset-management'),
-            userAssetTabs: document.getElementById('user-asset-tabs'),
-            userAssetContent: document.getElementById('user-asset-content'),
-            modalContainer: document.getElementById('modal-container'),
-        };
+        // Inicialização do Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
         
-        const closeModal = () => ui.modalContainer.innerHTML = '';
+        // Elementos Globais do DOM
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const appRoot = document.getElementById('app-root');
+        let userCache = {};
+        let currentUnsubscribes = []; // Para limpar listeners do Firestore
+
+        // --- FUNÇÕES DE UI (MODAL E TOAST) ---
         function showToast(message, type = 'info') {
-            const colors = { info: 'bg-blue-500', success: 'bg-green-500', error: 'bg-red-500' };
+            const toastContainer = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            toast.className = `fixed bottom-5 right-5 text-white py-3 px-5 rounded-lg shadow-xl ${colors[type]} transform translate-y-20 opacity-0 transition-all duration-300 z-50`;
+            const colors = { info: 'bg-blue-500', success: 'bg-green-500', error: 'bg-red-500' };
+            toast.className = `p-4 rounded-xl shadow-lg text-white ${colors[type]} transition-all duration-300 transform translate-y-4 opacity-0`;
             toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.classList.remove('translate-y-20', 'opacity-0'), 10);
-            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); setTimeout(() => toast.remove(), 3000); }, 3000);
+            toastContainer.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-y-4', 'opacity-0'); }, 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, 4000);
         }
-        const showSuccess = (msg) => showToast(msg, 'success');
-        const showError = (msg) => showToast(msg, 'error');
+        
+        function showModal(message, title = 'Atenção', options = { isConfirm: false, withInput: false }) {
+            return new Promise((resolve) => {
+                const backdrop = document.getElementById('modal-backdrop');
+                const content = document.querySelector('.modal-content');
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-message').innerHTML = message;
 
-        function showConfirmationModal(title, message, onConfirm) {
-            const content = `<p class="text-gray-300">${message}</p>`;
-            const footer = `
-                <button id="cancel-confirm-button" class="bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-500">Cancelar</button>
-                <button id="confirm-action-button" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Confirmar</button>
-            `;
-            ui.modalContainer.innerHTML = createModalHTML(title, content, footer);
-            
-            document.getElementById('close-modal-button').onclick = closeModal;
-            document.getElementById('cancel-confirm-button').onclick = closeModal;
-            document.getElementById('confirm-action-button').onclick = () => {
-                onConfirm();
-                closeModal();
-            };
-        }
+                const confirmBtn = document.getElementById('modal-confirm-button');
+                const cancelBtn = document.getElementById('modal-cancel-button');
+                const inputContainer = document.getElementById('modal-input-container');
+                const input = document.getElementById('modal-input');
 
-        const statusStyles = {
-            'Aguardando': 'bg-yellow-500/20 text-yellow-400 border-yellow-500',
-            'Em Andamento': 'bg-blue-500/20 text-blue-400 border-blue-500',
-            'Finalizada': 'bg-green-500/20 text-green-400 border-green-500',
-            'default': 'bg-gray-500/20 text-gray-400 border-gray-500'
-        };
+                cancelBtn.style.display = options.isConfirm ? 'block' : 'none';
+                confirmBtn.textContent = options.isConfirm ? 'Confirmar' : 'OK';
+                inputContainer.style.display = options.withInput ? 'block' : 'none';
+                input.value = '';
+                
+                backdrop.classList.remove('hidden');
+                setTimeout(() => {
+                    backdrop.classList.remove('opacity-0');
+                    content.classList.remove('scale-95');
+                }, 10);
 
-        onAuthStateChanged(auth, (user) => {
-            unsubscribes.forEach(unsub => unsub());
-            unsubscribes = [];
-            if (user) {
-                const userDocRef = doc(db, 'users', user.uid);
-                const unsub = onSnapshot(userDocRef, (userDocSnap) => {
-                    if (userDocSnap.exists()) {
-                        currentUserData = { uid: user.uid, ...userDocSnap.data() };
-                        setupApp();
-                    } else {
-                        showError("Dados do usuário não encontrados. Deslogando.");
-                        signOut(auth);
-                    }
-                });
-                unsubscribes.push(unsub);
-            } else {
-                currentUserData = null;
-                showAuth();
-            }
-        });
-
-        ui.loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = ui.loginForm['login-email'].value;
-            const password = ui.loginForm['login-password'].value;
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                showError("Falha no login: " + error.message);
-            }
-        });
-
-        ui.registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = ui.registerForm['register-name'].value;
-            const email = ui.registerForm['register-email'].value;
-            const phone = ui.registerForm['register-phone'].value;
-            const password = ui.registerForm['register-password'].value;
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                const userDocRef = doc(db, 'users', user.uid);
-                const newUser = {
-                    name, email, phone, role: 'user',
-                    permissions: { canCreateMachines: false, canCreateTools: false, canCreateParts: false }
+                const close = (value) => {
+                    backdrop.classList.add('opacity-0');
+                    content.classList.add('scale-95');
+                    backdrop.addEventListener('transitionend', () => backdrop.classList.add('hidden'), { once: true });
+                    resolve(options.withInput ? { confirmed: value, value: input.value } : value);
                 };
-                await setDoc(userDocRef, newUser);
-                showSuccess("Cadastro realizado com sucesso!");
-                ui.registerForm.reset();
-            } catch (error) {
-                showError("Falha no cadastro: " + error.message);
+
+                confirmBtn.onclick = () => close(true);
+                cancelBtn.onclick = () => close(false);
+            });
+        }
+
+
+        // --- FUNÇÕES DE TEMPLATE HTML ---
+        function getAuthShellHTML() {
+            return `<div class="flex-grow flex items-center justify-center min-h-screen p-4"><div class="w-full max-w-md"><div class="glass-card p-8 rounded-2xl shadow-2xl"><div class="mb-6 text-center">
+            <img src="https://i.imgur.com/0S7XZFz.png" alt="Logo" class="h-12 mx-auto mb-4">
+            <p class="text-white/70">Bem-vindo(a)!</p></div><div class="flex border-b border-white/20 mb-6"><button id="login-tab-button" class="tab-button flex-1 py-3 font-semibold border-b-2 transition-colors duration-300">Login</button><button id="register-tab-button" class="tab-button flex-1 py-3 font-semibold border-b-2 border-transparent text-white/60 transition-colors duration-300">Cadastro</button></div><div><div id="login-tab-content" style="display: none;"><form id="login-form" class="space-y-6"><input type="email" id="login-email" placeholder="Email" class="glass-input w-full py-3 px-4 rounded-xl" required><input type="password" id="login-password" placeholder="Senha" class="glass-input w-full py-3 px-4 rounded-xl" required><button type="submit" class="w-full bg-indigo-500 hover:bg-indigo-600 font-bold py-3 px-4 rounded-xl transition">Entrar</button></form></div><div id="register-tab-content" style="display: none;"><form id="register-form" class="space-y-6"><input type="text" id="register-name" placeholder="Nome Completo" class="glass-input w-full py-3 px-4 rounded-xl" required><input type="email" id="register-email" placeholder="Email" class="glass-input w-full py-3 px-4 rounded-xl" required><input type="password" id="register-password" placeholder="Senha (mínimo 6 caracteres)" class="glass-input w-full py-3 px-4 rounded-xl" required><button type="submit" class="w-full bg-green-500 hover:bg-green-600 font-bold py-3 px-4 rounded-xl transition">Cadastrar</button></form></div></div></div></div></div>`;
+        }
+
+        function getAppShellHTML() {
+            return `<div class="container mx-auto p-4 md:p-8 flex flex-col"><header id="main-header" class="flex justify-between items-center mb-8">
+            <img src="https://i.imgur.com/0S7XZFz.png" alt="Logo" class="h-10 cursor-pointer" onclick="goHome()">
+            <div class="flex items-center gap-4"><span id="user-email" class="text-white/80 hidden md:block"></span><div id="admin-button-container"></div><button id="logout-button" class="bg-red-500/50 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-xl transition">Sair</button></div></header><main id="app-main-view"></main></div>`;
+        }
+
+        function getDashboardHTML() {
+            return `<div class="flex justify-center gap-4 mb-8"><button onclick="renderView('os-create-page')" class="bg-blue-500/80 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition">+ Cadastrar Nova O.S.</button><button onclick="renderView('laudo-create-page')" class="bg-indigo-500/80 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition">+ Cadastrar Novo Laudo</button></div><div><h2 class="text-2xl font-semibold mb-4">Minhas Ordens de Serviço</h2><div id="os-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div><div class="mt-12"><h2 class="text-2xl font-semibold mb-4">Meus Laudos Técnicos</h2><div id="laudos-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>`;
+        }
+
+        function getAdminDashboardHTML() {
+            return `<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"><div class="glass-card p-6 rounded-2xl"><h3 class="text-lg text-white/70">O.S. em Aberto</h3><p id="os-aberto-count" class="text-4xl font-bold">0</p></div><div class="glass-card p-6 rounded-2xl"><h3 class="text-lg text-white/70">Total de O.S.</h3><p id="os-total-count" class="text-4xl font-bold">0</p></div><div class="glass-card p-6 rounded-2xl"><h3 class="text-lg text-white/70">Total de Laudos</h3><p id="laudos-total-count" class="text-4xl font-bold">0</p></div></div>
+            
+            <div class="mb-8">
+                <div class="flex border-b border-white/20">
+                    <button id="admin-tab-abertas" class="tab-button flex-1 py-3 font-semibold border-b-2 transition-colors duration-300">Abertas</button>
+                    <button id="admin-tab-fechadas" class="tab-button flex-1 py-3 font-semibold border-b-2 border-transparent text-white/60 transition-colors duration-300">Fechadas</button>
+                </div>
+            </div>
+
+            <div id="admin-content-abertas">
+                <div class="glass-card p-6 rounded-2xl mb-8"><h2 class="text-2xl font-semibold mb-4">Ordens de Serviço Abertas</h2><div class="overflow-x-auto"><table class="w-full text-left"><thead class="border-b border-white/20"><tr><th class="p-3">Nº O.S.</th><th class="p-3">Cliente</th><th class="p-3">Status</th><th class="p-3">Criado por</th><th class="p-3">Data</th><th class="p-3 text-right">Ações</th></tr></thead><tbody id="admin-os-list-abertas"></tbody></table></div></div>
+                <div class="glass-card p-6 rounded-2xl"><h2 class="text-2xl font-semibold mb-4">Laudos Técnicos (Não Vinculados a O.S. Fechada)</h2><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b border-white/20"><th class="p-3">Marca/Modelo</th><th class="p-3">Nº Série</th><th class="p-3">Criado por</th><th class="p-3">Data</th><th class="p-3 text-right">Ações</th></tr></thead><tbody id="admin-laudos-list-abertos"></tbody></table></div></div>
+            </div>
+            
+            <div id="admin-content-fechadas" class="hidden">
+                 <div class="glass-card p-6 rounded-2xl mb-8"><h2 class="text-2xl font-semibold mb-4">Ordens de Serviço Fechadas</h2><div class="overflow-x-auto"><table class="w-full text-left"><thead class="border-b border-white/20"><tr><th class="p-3">Nº O.S.</th><th class="p-3">Cliente</th><th class="p-3">Status</th><th class="p-3">Criado por</th><th class="p-3">Data</th><th class="p-3 text-right">Ações</th></tr></thead><tbody id="admin-os-list-fechadas"></tbody></table></div></div>
+                 <div class="glass-card p-6 rounded-2xl"><h2 class="text-2xl font-semibold mb-4">Laudos Técnicos (Vinculados a O.S. Fechada)</h2><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b border-white/20"><th class="p-3">Marca/Modelo</th><th class="p-3">Nº Série</th><th class="p-3">Criado por</th><th class="p-3">Data</th><th class="p-3 text-right">Ações</th></tr></thead><tbody id="admin-laudos-list-fechados"></tbody></table></div></div>
+            </div>
+
+            <div class="glass-card p-6 rounded-2xl mt-8 border border-red-500/50"><h2 class="text-2xl font-semibold mb-4 text-red-400">Zona de Perigo</h2><p class="text-white/70 mb-4">Atenção: As ações abaixo são irreversíveis.</p><div class="flex flex-wrap gap-4"><button onclick="deleteAllFromCollection('serviceOrders')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition">Apagar TODAS as Ordens de Serviço</button><button onclick="deleteAllFromCollection('laudos')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-xl transition">Apagar TODOS os Laudos</button></div></div>`;
+        }
+        
+        function getOsFormHTML(isEditing) {
+             return `<div class="glass-card max-w-4xl mx-auto p-8 rounded-2xl shadow-2xl"><header class="flex justify-between items-center mb-8"><h1 id="os-form-title" class="text-3xl font-bold">${isEditing ? 'Detalhes da O.S.' : 'Cadastrar Ordem de Serviço'}</h1><button id="form-back-button" class="text-indigo-300 hover:text-indigo-200">&larr; Voltar</button></header><form id="os-form" class="space-y-6"><input type="hidden" id="os-id"><fieldset class="border border-white/20 p-4 rounded-xl"><legend class="text-xl font-semibold px-2">Dados Gerais</legend><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"><input type="text" id="os-cliente" placeholder="Cliente" class="glass-input w-full p-3 rounded-xl" required><input type="text" id="os-numero-os" placeholder="Número da O.S." class="glass-input w-full p-3 rounded-xl" required><input type="text" id="os-tag" placeholder="TAG/Equipamento" class="glass-input w-full p-3 rounded-xl"><input type="text" id="os-motivo" placeholder="Motivo" class="glass-input w-full p-3 rounded-xl" required><select id="os-tipo-servico" class="glass-select w-full p-3 rounded-xl" required><option>Corretiva</option><option>Planejada</option><option>Melhoria</option><option>Predial</option></select><div><label class="block mb-2 text-white/70">Máquina Parou?</label><div class="flex gap-4 mt-2"><label><input type="radio" name="maquina-parou" value="true" required> Sim</label><label><input type="radio" name="maquina-parou" value="false" checked> Não</label></div></div></div></fieldset>
+             <fieldset class="border border-white/20 p-4 rounded-xl"><legend class="text-xl font-semibold px-2">Colaboradores</legend>
+                <div class="flex gap-2">
+                    <select id="users-dropdown" class="glass-select w-full p-3 rounded-xl"></select>
+                    <button type="button" onclick="addCollaborator()" class="bg-indigo-500 hover:bg-indigo-600 font-bold py-3 px-4 rounded-xl transition">Adicionar</button>
+                </div>
+                <div id="collaborators-list" class="mt-4 space-y-2"></div>
+             </fieldset>
+             <fieldset class="border border-white/20 p-4 rounded-xl"><legend class="text-xl font-semibold px-2">Vincular Laudo</legend>
+                <div id="laudo-link-container">
+                    <label for="os-linked-laudo" class="block mb-2 text-white/70">Selecione um laudo existente (opcional)</label>
+                    <select id="os-linked-laudo" class="glass-select w-full p-3 rounded-xl"></select>
+                </div>
+             </fieldset>
+             <fieldset class="border border-white/20 p-4 rounded-xl"><legend class="text-xl font-semibold px-2">Detalhes do Serviço</legend><div class="space-y-4"><textarea id="os-causa" rows="3" placeholder="Causa Provável" class="glass-input w-full p-3 rounded-xl"></textarea><textarea id="os-descricao-servico" rows="5" placeholder="Descrição do Serviço Realizado" class="glass-input w-full p-3 rounded-xl" required></textarea><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block mb-1 text-white/70">Início</label><input type="datetime-local" id="os-inicio-ocorrencia" class="glass-input w-full p-3 rounded-xl" required></div><div><label class="block mb-1 text-white/70">Fim</label><input type="datetime-local" id="os-fim-ocorrencia" class="glass-input w-full p-3 rounded-xl" required></div></div></div></fieldset><fieldset class="border border-white/20 p-4 rounded-xl"><legend class="text-xl font-semibold px-2">Peças Utilizadas</legend><div id="pecas-container" class="space-y-4"></div><button type="button" onclick="addPecaField()" class="mt-4 bg-white/10 hover:bg-white/20 font-bold py-2 px-4 rounded-xl">+ Adicionar Peça</button></fieldset><fieldset class="border border-white/20 p-4 rounded-xl"><legend class="text-xl font-semibold px-2">Mão de Obra</legend><div id="mao-de-obra-container" class="space-y-4"></div><button type="button" onclick="addFuncionarioField()" class="mt-4 bg-white/10 hover:bg-white/20 font-bold py-2 px-4 rounded-xl">+ Adicionar Funcionário</button></fieldset><div id="os-form-buttons" class="flex justify-end"><button type="submit" class="bg-blue-500 hover:bg-blue-600 font-bold py-3 px-8 rounded-xl transition">${isEditing ? 'Atualizar O.S.' : 'Salvar O.S.'}</button></div></form></div>`;
+        }
+
+        function getLaudoFormHTML(isEditing) {
+            return `<div class="glass-card max-w-2xl mx-auto p-8 rounded-2xl shadow-2xl"><header class="flex justify-between items-center mb-8"><h1 class="text-3xl font-bold">${isEditing ? 'Detalhes do Laudo' : 'Cadastrar Laudo Técnico'}</h1><button id="form-back-button" class="text-indigo-300 hover:text-indigo-200">&larr; Voltar</button></header><form id="laudo-form" class="space-y-6"><input type="hidden" id="laudo-id"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><input type="text" id="laudo-numero-serie" placeholder="Número de Série" class="glass-input w-full py-3 px-4 rounded-xl" required><input type="text" id="laudo-marca" placeholder="Marca" class="glass-input w-full py-3 px-4 rounded-xl" required></div><input type="text" id="laudo-modelo" placeholder="Modelo" class="glass-input w-full py-3 px-4 rounded-xl" required><textarea id="laudo-problema" rows="4" placeholder="Problema Apresentado" class="glass-input w-full py-3 px-4 rounded-xl" required></textarea><textarea id="laudo-solucao" rows="4" placeholder="Solução Aplicada" class="glass-input w-full py-3 px-4 rounded-xl" required></textarea><div id="laudo-form-buttons" class="flex justify-end"><button type="submit" id="submit-laudo-button" class="bg-indigo-500 hover:bg-indigo-600 font-bold py-3 px-8 rounded-xl transition">${isEditing ? 'Atualizar Laudo' : 'Salvar Laudo'}</button></div></form></div>`;
+        }
+        
+        // --- FUNÇÕES AUXILIARES E DE SETUP ---
+        async function getUserName(userId) {
+            if (userCache[userId]) return userCache[userId];
+            try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                const userName = userDoc.exists ? userDoc.data().name : 'Usuário Deletado';
+                userCache[userId] = userName;
+                return userName;
+            } catch (error) { console.error("Erro ao buscar nome de usuário:", error); return 'Erro'; }
+        }
+
+        async function deleteItem(collection, docId) {
+            const confirmed = await showModal(`Tem certeza que deseja excluir este item permanentemente? Esta ação não pode ser desfeita.`, 'Confirmar Exclusão', { isConfirm: true });
+            if (confirmed) {
+                db.collection(collection).doc(docId).delete()
+                  .then(() => showToast('Item excluído com sucesso.', 'success'))
+                  .catch(e => showModal(`Erro ao excluir: ${e.message}`, 'Erro'));
             }
-        });
+        }
 
-        ui.logoutButton.addEventListener('click', () => signOut(auth));
-        ui.showRegisterBtn.addEventListener('click', () => {
-            ui.loginScreen.classList.add('hidden');
-            ui.registerScreen.classList.remove('hidden');
-        });
-        ui.showLoginBtn.addEventListener('click', () => {
-            ui.registerScreen.classList.add('hidden');
-            ui.loginScreen.classList.remove('hidden');
-        });
+        async function editOsStatus(docId, currentStatus) {
+            const newStatus = currentStatus === 'aberto' ? 'fechado' : 'aberto';
+            const confirmed = await showModal(`Deseja alterar o status desta O.S. para "${newStatus}"?`, 'Alterar Status', { isConfirm: true });
+            if (confirmed) {
+                 db.collection('serviceOrders').doc(docId).update({ status: newStatus })
+                   .catch(e => showModal(`Erro ao alterar status: ${e.message}`, 'Erro'));
+            }
+        }
 
-        function setupApp() {
-            if (!currentUserData) return;
-            ui.userNameDisplay.textContent = currentUserData.name;
-            ui.userIdDisplay.textContent = currentUserData.uid;
-            ui.mainApp.classList.remove('hidden');
-            ui.authContainer.classList.add('hidden');
-            fetchAllAssetsAndCategories();
-            if (currentUserData.role === 'admin') {
-                setupAdminView();
+        function switchAuthTab(tab) {
+            const loginTabButton = document.getElementById('login-tab-button');
+            const registerTabButton = document.getElementById('register-tab-button');
+            const loginTabContent = document.getElementById('login-tab-content');
+            const registerTabContent = document.getElementById('register-tab-content');
+            if (tab === 'login') {
+                loginTabButton.classList.add('active');
+                registerTabButton.classList.remove('active', 'text-white/60');
+                loginTabContent.style.display = 'block';
+                registerTabContent.style.display = 'none';
             } else {
-                setupUserView();
+                registerTabButton.classList.add('active');
+                loginTabButton.classList.remove('active');
+                registerTabContent.style.display = 'block';
+                loginTabContent.style.display = 'none';
             }
         }
 
-        function showAuth() {
-            ui.mainApp.classList.add('hidden');
-            ui.authContainer.classList.remove('hidden');
-            ui.loginScreen.classList.remove('hidden');
-            ui.registerScreen.classList.add('hidden');
-        }
-
-        async function fetchAllAssetsAndCategories() {
-            try {
-                const collectionsToFetch = ['machines', 'parts', 'tools', 'categories'];
-                const promises = collectionsToFetch.map(c => getDocs(collection(db, `artifacts/${appId}/public/data/${c}`)));
-                const [machinesSnap, partsSnap, toolsSnap, categoriesSnap] = await Promise.all(promises);
-                
-                const assets = { machines: [], parts: [], tools: [], categories: [] };
-                machinesSnap.forEach(doc => assets.machines.push({ id: doc.id, ...doc.data() }));
-                partsSnap.forEach(doc => assets.parts.push({ id: doc.id, ...doc.data() }));
-                toolsSnap.forEach(doc => assets.tools.push({ id: doc.id, ...doc.data() }));
-                categoriesSnap.forEach(doc => assets.categories.push({ id: doc.id, ...doc.data() }));
-
-                fetchedAssets = assets;
-                return assets;
-            } catch (error) {
-                showError("Erro ao carregar os ativos e categorias.");
-                console.error("Fetch all assets error:", error);
-                return { machines: [], parts: [], tools: [], categories: [] };
-            }
-        }
-
-        // --- VIEWS SETUP ---
-        function setupAdminView() {
-            ui.userView.classList.add('hidden');
-            ui.adminView.classList.remove('hidden');
-            const navButtons = document.querySelectorAll('#admin-nav button');
-            navButtons.forEach((button) => {
-                button.addEventListener('click', (e) => {
-                    if (statusChart) {
-                        statusChart.destroy();
-                        statusChart = null;
-                    }
-                    navButtons.forEach(btn => {
-                        btn.classList.remove('bg-orange-600', 'text-white');
-                        btn.classList.add('hover:bg-gray-700');
-                    });
-                    const currentButton = e.currentTarget;
-                    currentButton.classList.add('bg-orange-600', 'text-white');
-                    currentButton.classList.remove('hover:bg-gray-700');
-                    const targetId = currentButton.dataset.target;
-                    document.querySelectorAll('.admin-tab-content').forEach(content => {
-                        content.id === targetId ? content.classList.remove('hidden') : content.classList.add('hidden');
-                    });
+        function setupAuthListeners() {
+            document.getElementById('login-tab-button').addEventListener('click', () => switchAuthTab('login'));
+            document.getElementById('register-tab-button').addEventListener('click', () => switchAuthTab('register'));
+            const loginForm = document.getElementById('login-form');
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('button');
+                btn.disabled = true; btn.textContent = 'Entrando...';
+                auth.signInWithEmailAndPassword(loginForm['login-email'].value, loginForm['login-password'].value)
+                .catch(error => {
+                    showModal("Erro: " + error.message, 'Erro de Login');
+                    btn.disabled = false; btn.textContent = 'Entrar';
                 });
             });
-            
-            document.querySelector('#admin-nav button[data-target="admin-dashboard"]').click();
-            
-            loadAdminDashboard(document.getElementById('admin-dashboard'));
-            loadAdminContent('orders', 'Fichas de Manutenção', loadAdminOrders);
-            loadAdminContent('users', 'Gerenciar Usuários', loadAdminUsers);
-            loadAdminContent('machines', 'Gerenciar Máquinas', (c) => loadAssetList(c, 'machines', true));
-            loadAdminContent('tools', 'Gerenciar Ferramentas', (c) => loadAssetList(c, 'tools', true));
-            loadAdminContent('parts', 'Gerenciar Peças', (c) => loadAssetList(c, 'parts', true));
-            loadAdminContent('categories', 'Gerenciar Categorias', loadAdminCategories);
-        }
-
-        function setupUserView() {
-            ui.adminView.classList.add('hidden');
-            ui.userView.classList.remove('hidden');
-            ui.maintenanceFormContainer.classList.add('hidden');
-
-            const q = query(collection(db, `artifacts/${appId}/public/data/maintenance_forms`), where("creatorUid", "==", currentUserData.uid));
-            const unsubForms = onSnapshot(q, (snapshot) => {
-                const sortedDocs = snapshot.docs.sort((a, b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
-
-                ui.userFormsList.innerHTML = snapshot.empty ? '<p class="text-gray-500">Nenhuma ficha encontrada.</p>' : '';
-                sortedDocs.forEach(doc => {
-                    const form = doc.data();
-                    if (form.isArchived) return;
-                    const latest = form.versions['v' + form.latestVersion];
-                    const card = document.createElement('div');
-                    
-                    const formStatus = form.status || 'Aguardando';
-                    const statusStyle = statusStyles[formStatus] || statusStyles['default'];
-                    card.className = `flex flex-col md:flex-row items-start md:items-center gap-4 bg-gray-800 p-4 rounded-lg shadow-md border-l-4 ${statusStyle.split(' ')[2]}`;
-                    
-                    card.innerHTML = `
-                        <div class="flex-grow">
-                            <div class="flex items-center gap-4 mb-2">
-                                <p class="font-bold text-orange-500">${latest.tag || 'Sem TAG'}</p>
-                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${statusStyle}">${formStatus}</span>
-                            </div>
-                            <p class="text-sm text-gray-300">${latest.equipamento || 'Equipamento não descrito'} (OS: ${latest.ordemServico || 'N/A'})</p>
-                            <p class="text-xs text-gray-500">Versão: V${form.latestVersion} | Criado por: ${form.creatorName}</p>
-                        </div>
-                        <div class="flex items-center gap-3 self-end md:self-center">
-                            <div class="flex gap-2">
-                                <button title="Aguardando" data-doc-id="${doc.id}" data-status="Aguardando" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Aguardando' ? 'bg-yellow-500/30' : 'bg-gray-700/50 hover:bg-yellow-500/50'}"><i class="fa-solid fa-circle-pause w-5 h-5 text-yellow-400"></i></button>
-                                <button title="Em Andamento" data-doc-id="${doc.id}" data-status="Em Andamento" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Em Andamento' ? 'bg-blue-500/30' : 'bg-gray-700/50 hover:bg-blue-500/50'}"><i class="fa-solid fa-circle-play w-5 h-5 text-blue-400"></i></button>
-                                <button title="Finalizada" data-doc-id="${doc.id}" data-status="Finalizada" class="action-button status-button p-2 rounded-full transition-all duration-200 hover:scale-110 ${formStatus === 'Finalizada' ? 'bg-green-500/30' : 'bg-gray-700/50 hover:bg-green-500/50'}"><i class="fa-solid fa-circle-check w-5 h-5 text-green-400"></i></button>
-                            </div>
-                            <button title="Editar Ficha" class="action-button edit-user-form-button p-2 rounded-full bg-gray-600 text-white hover:bg-gray-500 transition-all duration-200 hover:scale-110"><i class="fa-solid fa-pencil w-5 h-5"></i></button>
-                        </div>
-                    `;
-                    card.querySelector('.edit-user-form-button').onclick = () => editMaintenanceForm(doc.id);
-                    ui.userFormsList.appendChild(card);
-                });
+            const registerForm = document.getElementById('register-form');
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('button');
+                btn.disabled = true; btn.textContent = 'Cadastrando...';
+                auth.createUserWithEmailAndPassword(registerForm['register-email'].value, registerForm['register-password'].value)
+                .then(cred => db.collection('users').doc(cred.user.uid).set({ name: registerForm['register-name'].value, email: cred.user.email, role: 'student' }))
+                .then(() => {
+                    showModal("Cadastro realizado com sucesso! Por favor, faça o login.", "Sucesso");
+                    switchAuthTab('login');
+                    registerForm.reset();
+                })
+                .catch(error => showModal("Erro: " + error.message, 'Erro de Cadastro'))
+                .finally(() => { btn.disabled = false; btn.textContent = 'Cadastrar'; });
             });
+            switchAuthTab('login');
+        }
+
+        function renderView(viewId, data = null) {
+            currentUnsubscribes.forEach(unsub => unsub());
+            currentUnsubscribes = [];
+            const appMainView = document.getElementById('app-main-view');
+            appMainView.innerHTML = '';
             
-            ui.userFormsList.addEventListener('click', (e) => {
-                const button = e.target.closest('.status-button');
-                if (button) {
-                    const { docId, status } = button.dataset;
-                    if (docId && status) {
-                        updateFormStatus(docId, status);
-                    }
-                }
-            });
+            const dataId = (typeof data === 'object' && data !== null) ? data.id : data;
+            const context = (typeof data === 'object' && data !== null) ? data.context : null;
 
-            unsubscribes.push(unsubForms);
-            setupUserAssetManagement();
-        }
-        
-        async function updateFormStatus(formId, newStatus) {
-            try {
-                const formDocRef = doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId);
-                await updateDoc(formDocRef, { status: newStatus });
-                showSuccess(`Status da ficha atualizado para "${newStatus}"!`);
-            } catch (e) {
-                showError("Erro ao atualizar o status da ficha.");
-                console.error("Update status error:", e);
-            }
-        }
-        
-        function setupUserAssetManagement() {
-            const perms = currentUserData.permissions || {};
-            ui.userAssetTabs.innerHTML = '';
-            ui.userAssetContent.innerHTML = '';
-
-            const permittedAssets = [
-                { type: 'machines', label: 'Máquinas', perm: perms.canCreateMachines },
-                { type: 'tools', label: 'Ferramentas', perm: perms.canCreateTools },
-                { type: 'parts', label: 'Peças', perm: perms.canCreateParts },
-            ].filter(asset => asset.perm);
-
-            if (permittedAssets.length === 0) {
-                ui.userAssetManagement.classList.add('hidden');
-                return;
-            }
-
-            ui.userAssetManagement.classList.remove('hidden');
-            permittedAssets.forEach((asset, index) => {
-                const button = document.createElement('button');
-                button.dataset.type = asset.type;
-                button.textContent = asset.label;
-                button.className = `px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${index === 0 ? 'bg-gray-800 border-x border-t border-gray-700 text-orange-500' : 'text-gray-400 hover:text-gray-100'}`;
-                button.onclick = (e) => {
-                    document.querySelectorAll('#user-asset-tabs button').forEach(btn => {
-                        btn.className = 'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors text-gray-400 hover:text-gray-100';
-                    });
-                    e.currentTarget.className = 'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors bg-gray-800 border-x border-t border-gray-700 text-orange-500';
-                    loadUserAssets(asset.type);
-                };
-                ui.userAssetTabs.appendChild(button);
-            });
-
-            if(ui.userAssetTabs.firstChild) ui.userAssetTabs.firstChild.click();
-        }
-
-        function loadUserAssets(assetType) {
-            const container = ui.userAssetContent;
-            const assetNameSingular = assetType.slice(0, -1);
-            container.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                     <h3 class="text-xl font-bold text-gray-100">Gerenciar ${assetNameSingular.charAt(0).toUpperCase() + assetNameSingular.slice(1)}s</h3>
-                    <button id="user-add-asset-button" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2">
-                        <i class="fa-solid fa-plus w-4 h-4"></i> <span>Adicionar</span>
-                    </button>
-                </div>
-                <div id="asset-list-container"></div>
-            `;
-            document.getElementById('user-add-asset-button').onclick = () => manageAsset(assetNameSingular, null, false);
-            loadAssetList(document.getElementById('asset-list-container'), assetType, false);
-        }
-
-        // --- ADMIN VIEW FUNCTIONS ---
-        function loadAdminContent(id, title, loaderFn) {
-            const container = document.getElementById(`admin-${id}`);
-            container.innerHTML = `<h2 class="text-2xl font-bold text-gray-100 mb-4">${title}</h2><div class="content-wrapper"></div>`;
-            const isAsset = !['forms', 'users', 'orders', 'dashboard'].includes(id);
-             if (isAsset) {
-                const header = container.querySelector('h2');
-                header.classList.add('flex', 'justify-between', 'items-center');
-                const buttonText = id === 'categories' ? 'Adicionar Categoria' : 'Adicionar';
-                const clickHandler = id === 'categories' ? () => manageCategory() : () => manageAsset(id.slice(0, -1), null, true);
-
-                header.insertAdjacentHTML('beforeend', `<button id="add-asset-${id}" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2"><i class="fa-solid fa-plus w-4 h-4"></i> <span>${buttonText}</span></button>`);
-                document.getElementById(`add-asset-${id}`).onclick = clickHandler;
-            }
-            loaderFn(container.querySelector('.content-wrapper'));
-        }
-
-        async function loadAdminDashboard(container) {
-            container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-sm text-gray-400">Total de Fichas</p><p id="kpi-total-orders" class="text-2xl font-bold">0</p></div>
-                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-sm text-gray-400">Fichas em Aberto</p><p id="kpi-open-orders" class="text-2xl font-bold text-yellow-400">0</p></div>
-                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-sm text-gray-400">Fichas Finalizadas</p><p id="kpi-closed-orders" class="text-2xl font-bold text-green-400">0</p></div>
-                    <div class="bg-gray-900 p-4 rounded-lg"><p class="text-sm text-gray-400">Total de Usuários</p><p id="kpi-total-users" class="text-2xl font-bold">0</p></div>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-gray-900 p-4 rounded-lg">
-                        <h3 class="font-semibold mb-4">Últimas Ordens de Serviço</h3>
-                        <div id="dashboard-recent-orders" class="space-y-3"></div>
-                    </div>
-                    <div class="bg-gray-900 p-4 rounded-lg flex flex-col items-center justify-center">
-                        <h3 class="font-semibold mb-4">Status das Fichas</h3>
-                        <div class="w-full max-w-[250px]"><canvas id="status-chart"></canvas></div>
-                    </div>
-                </div>
-            `;
-            
-            const ordersQuery = query(collection(db, `artifacts/${appId}/public/data/maintenance_forms`));
-            const usersQuery = query(collection(db, 'users'));
-
-            const unsubOrders = onSnapshot(ordersQuery, (snapshot) => {
-                const orders = snapshot.docs.map(d => d.data());
-                const statusCounts = { 'Aguardando': 0, 'Em Andamento': 0, 'Finalizada': 0 };
-                orders.forEach(order => {
-                    if(!order.isArchived) {
-                        const status = order.status || 'Aguardando';
-                        if(statusCounts.hasOwnProperty(status)) {
-                           statusCounts[status]++;
-                        }
-                    }
-                });
-                
-                document.getElementById('kpi-total-orders').textContent = orders.length;
-                document.getElementById('kpi-open-orders').textContent = statusCounts['Aguardando'] + statusCounts['Em Andamento'];
-                document.getElementById('kpi-closed-orders').textContent = statusCounts['Finalizada'];
-                updateChart(statusCounts);
-
-                 const recentOrdersContainer = document.getElementById('dashboard-recent-orders');
-                 recentOrdersContainer.innerHTML = '';
-                 orders.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).slice(0,5).forEach(form => {
-                     const latest = form.versions['v' + form.latestVersion];
-                     const status = form.status || 'Aguardando';
-                     const style = statusStyles[status] || statusStyles.default;
-                     recentOrdersContainer.innerHTML += `
-                         <div class="p-2 rounded-md border-l-4 ${style.split(' ')[2]} bg-gray-800/50">
-                             <p class="font-semibold text-gray-200">${latest.tag} - <span class="font-normal text-gray-400">${latest.motivo || 'Motivo não especificado'}</span></p>
-                             <p class="text-xs text-gray-500">Por: ${form.creatorName} - Status: <span class="font-semibold" style="color:${style.split(' ')[1].replace('text-','')};">${status}</span></p>
-                         </div>
-                     `;
-                 });
-
-            });
-             unsubscribes.push(unsubOrders);
-
-            const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
-                document.getElementById('kpi-total-users').textContent = snapshot.size;
-            });
-            unsubscribes.push(unsubUsers);
-        }
-
-        function updateChart(statusCounts) {
-             const ctx = document.getElementById('status-chart');
-             if(!ctx) return;
-             if(statusChart) {
-                 statusChart.data.datasets[0].data = Object.values(statusCounts);
-                 statusChart.update();
-                 return;
-             }
-             statusChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(statusCounts),
-                    datasets: [{
-                        label: 'Status',
-                        data: Object.values(statusCounts),
-                        backgroundColor: [ '#facc15', '#3b82f6', '#22c55e' ],
-                        borderColor: '#1f2937',
-                        borderWidth: 4,
-                        hoverOffset: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#d1d5db',
-                                boxWidth: 15,
-                                padding: 15,
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        
-        function loadAdminOrders(container) {
-            container.innerHTML = `
-                <div class="flex items-center justify-end mb-4">
-                     <label class="flex items-center gap-2 text-sm text-gray-400"><input type="checkbox" id="show-archived-toggle" class="w-4 h-4 text-orange-600 bg-gray-700 border-gray-600 rounded focus:ring-orange-500">Mostrar arquivadas</label>
-                </div>
-                <div id="admin-orders-list" class="space-y-3"></div>
-            `;
-
-            const listContainer = document.getElementById('admin-orders-list');
-            const toggle = document.getElementById('show-archived-toggle');
-
-            let allOrders = [];
-
-            const renderOrders = () => {
-                const showArchived = toggle.checked;
-                const filteredOrders = allOrders.filter(form => (form.isArchived === true) === showArchived);
-                
-                listContainer.innerHTML = filteredOrders.length === 0 ? '<p class="text-gray-500">Nenhuma ficha encontrada.</p>' : '';
-                
-                filteredOrders.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)).forEach(form => {
-                    const latest = form.versions['v' + form.latestVersion];
-                    const card = document.createElement('div');
-                    card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
-                    
-                    let buttons = `
-                        <button title="Ver Detalhes" class="action-button view-details-button p-2 rounded-full text-gray-300 bg-gray-700 hover:bg-gray-600 transition-all duration-200"><i class="fa-solid fa-eye w-4 h-4"></i></button>
-                        ${form.status === 'Finalizada' && !form.isArchived ? `<button title="Arquivar Ficha" class="action-button archive-order-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-box-archive w-4 h-4"></i></button>` : ''}
-                        <button title="Excluir Ficha" class="action-button delete-order-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-trash-can w-4 h-4"></i></button>
-                    `;
-
-                    card.innerHTML = `
-                        <div class="flex-grow">
-                            <p class="font-semibold text-orange-500">${latest.tag || 'Sem TAG'} - <span class="font-normal text-gray-300">${latest.equipamento || 'Sem Descrição'}</span></p>
-                            <p class="text-sm text-gray-400">Por: ${form.creatorName} | Status: <span class="font-semibold ${statusStyles[form.status]?.split(' ')[1] || ''}">${form.status}</span></p>
-                        </div>
-                        <div class="flex items-center gap-2">${buttons}</div>`;
-                    
-                    card.querySelector('.view-details-button').onclick = () => viewFormDetails(form.id);
-                    const archiveButton = card.querySelector('.archive-order-button');
-                    if (archiveButton) {
-                        archiveButton.onclick = () => archiveOrder(form.id);
-                    }
-                    const deleteButton = card.querySelector('.delete-order-button');
-                    if(deleteButton) {
-                        deleteButton.onclick = () => deleteOrder(form.id, latest.tag);
-                    }
-
-                    listContainer.appendChild(card);
-                });
-            };
-            
-            const q = query(collection(db, `artifacts/${appId}/public/data/maintenance_forms`));
-            const unsub = onSnapshot(q, (snapshot) => {
-                allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderOrders();
-            });
-            unsubscribes.push(unsub);
-
-            toggle.addEventListener('change', renderOrders);
-        }
-
-        async function archiveOrder(formId) {
-             showConfirmationModal(
-                'Arquivar Ficha',
-                'Tem certeza que deseja arquivar esta ficha? Ela não aparecerá mais na lista principal.',
-                async () => {
-                     try {
-                        const formDocRef = doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId);
-                        await updateDoc(formDocRef, { isArchived: true });
-                        showSuccess('Ficha arquivada com sucesso!');
-                    } catch (e) {
-                        showError('Erro ao arquivar a ficha.');
-                        console.error("Archive error:", e);
-                    }
-                }
-            );
-        }
-
-        async function deleteOrder(formId, formTag) {
-            showConfirmationModal(
-                'Excluir Ficha Permanentemente',
-                `Tem certeza que deseja EXCLUIR a ficha para a TAG "${formTag || 'Sem TAG'}"? Esta ação é irreversível.`,
-                async () => {
-                    try {
-                        await deleteDoc(doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId));
-                        showSuccess("Ficha excluída com sucesso.");
-                    } catch (e) {
-                        showError("Falha ao excluir a ficha.");
-                        console.error("Delete order error:", e);
-                    }
-                }
-            );
-        }
-
-        function loadAdminUsers(container) {
-            const q = collection(db, 'users');
-            const unsub = onSnapshot(q, (snapshot) => {
-                container.innerHTML = snapshot.empty ? '<p class="text-gray-500">Nenhum usuário encontrado.</p>' : '<div class="space-y-3"></div>';
-                if(snapshot.empty) return;
-                const list = container.querySelector('.space-y-3');
-                snapshot.forEach(doc => {
-                    const user = { id: doc.id, ...doc.data() };
-                    if (user.id === currentUserData.uid) return;
-                    
-                    const p = user.permissions || {};
-                    let permissionsHTML = [
-                        p.canCreateMachines ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400"><i class="fa-solid fa-microchip w-3 h-3"></i>&nbsp;Máquinas</span>` : '',
-                        p.canCreateTools ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-teal-500/20 text-teal-400"><i class="fa-solid fa-wrench w-3 h-3"></i>&nbsp;Ferramentas</span>` : '',
-                        p.canCreateParts ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400"><i class="fa-solid fa-cubes w-3 h-3"></i>&nbsp;Peças</span>` : ''
-                    ].filter(Boolean).join('');
-
-                    if (!permissionsHTML) {
-                        permissionsHTML = '<span class="text-xs text-gray-500">Nenhuma permissão de criação</span>';
-                    }
-
-                    const card = document.createElement('div');
-                    card.className = "bg-gray-900 p-4 rounded-lg border border-gray-700 flex justify-between items-center";
-                    card.innerHTML = `
-                        <div class="flex-grow">
-                            <p class="font-semibold text-gray-100">${user.name} <span class="text-xs ml-2 px-2 py-0.5 rounded-full ${user.role === 'admin' ? 'bg-orange-600' : 'bg-gray-600'}">${user.role}</span></p>
-                            <p class="text-sm text-gray-400 mb-2">${user.email}</p>
-                            <div class="flex items-center flex-wrap gap-2">
-                                ${permissionsHTML}
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3">
-                           <button title="Gerenciar Permissões" class="action-button edit-user-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-sliders w-4 h-4"></i></button>
-                           <button title="Excluir Usuário" class="action-button delete-user-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-trash-can w-4 h-4"></i></button>
-                        </div>
-                    `;
-                    card.querySelector('.edit-user-button').onclick = () => manageUserPermissions(user);
-                    card.querySelector('.delete-user-button').onclick = () => deleteUser(user.id, user.name);
-                    list.appendChild(card);
-                });
-            });
-            unsubscribes.push(unsub);
-        }
-
-        async function deleteUser(userId, userName) {
-            showConfirmationModal(
-                'Excluir Usuário',
-                `Tem certeza que deseja EXCLUIR PERMANENTEMENTE o usuário "${userName}"? Esta ação não pode ser desfeita.`,
-                async () => {
-                    try {
-                        await deleteDoc(doc(db, 'users', userId));
-                        showSuccess(`Usuário "${userName}" excluído.`);
-                    } catch (e) {
-                        showError("Erro ao excluir o documento do usuário.");
-                        console.error("Delete user error:", e);
-                    }
-                }
-            );
-        }
-        
-        function manageUserPermissions(user) {
-            const p = user.permissions || {};
-            const title = `Gerenciar ${user.name}`;
-            const content = `<form id="permissions-form" class="space-y-4"><p class="text-gray-400">Defina o cargo e as permissões de criação para este usuário.</p><div><label class="font-semibold text-gray-300">Cargo</label><select name="role" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded"><option value="user" ${user.role === 'user' ? 'selected' : ''}>Usuário</option><option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option></select></div><div class="border-t border-gray-700 pt-4"><h4 class="font-semibold text-gray-300 mb-2">Permissões de Criação</h4><div class="space-y-2"><label class="flex items-center gap-2"><input type="checkbox" name="canCreateMachines" ${p.canCreateMachines ? 'checked' : ''} class="w-4 h-4 text-orange-600 bg-gray-700 border-gray-600 rounded focus:ring-orange-500">Pode criar máquinas</label><label class="flex items-center gap-2"><input type="checkbox" name="canCreateTools" ${p.canCreateTools ? 'checked' : ''} class="w-4 h-4 text-orange-600 bg-gray-700 border-gray-600 rounded focus:ring-orange-500">Pode criar ferramentas</label><label class="flex items-center gap-2"><input type="checkbox" name="canCreateParts" ${p.canCreateParts ? 'checked' : ''} class="w-4 h-4 text-orange-600 bg-gray-700 border-gray-600 rounded focus:ring-orange-500">Pode criar peças</label></div></div></form>`;
-            const footer = `<button id="cancel-modal" class="bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-500">Cancelar</button><button id="save-permissions" class="bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700">Salvar Alterações</button>`;
-            ui.modalContainer.innerHTML = createModalHTML(title, content, footer);
-            document.getElementById('cancel-modal').onclick = closeModal;
-            document.getElementById('close-modal-button').onclick = closeModal;
-            document.getElementById('save-permissions').onclick = async () => {
-                const form = document.getElementById('permissions-form');
-                const newRole = form.elements.role.value;
-                const newPermissions = {
-                    canCreateMachines: form.elements.canCreateMachines.checked,
-                    canCreateTools: form.elements.canCreateTools.checked,
-                    canCreateParts: form.elements.canCreateParts.checked,
-                };
-                try {
-                    const userDocRef = doc(db, 'users', user.id);
-                    await updateDoc(userDocRef, { role: newRole, permissions: newPermissions });
-                    showSuccess("Permissões atualizadas com sucesso!");
-                    closeModal();
-                } catch(e) { 
-                    showError("Erro ao atualizar permissões.");
-                    console.error("Update permissions error:", e);
-                }
-            };
-        }
-        
-        function loadAssetList(container, collectionName, isAdmin) {
-            const typeName = {machines: 'Máquinas', tools: 'Ferramentas', parts: 'Peças'}[collectionName] || 'Itens';
-            container.innerHTML = `
-                <div class="flex flex-wrap gap-4 mb-4 items-center">
-                    <div class="flex-grow min-w-[200px]"><input type="search" id="search-${collectionName}" placeholder="Buscar..." class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md"></div>
-                    <div class="flex-shrink-0"><select id="category-filter-${collectionName}" class="w-full p-2 bg-gray-900 border border-gray-600 rounded-md"><option value="">Filtrar por Categoria</option></select></div>
-                    ${isAdmin ? `<div class="flex-shrink-0"><button id="auto-categorize-${collectionName}" class="w-full bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-teal-700 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-xs"></i> <span>Categorizar ${typeName}</span></button></div>` : ''}
-                </div>
-                <div id="list-${collectionName}" class="mt-4"></div>`;
-            
-            if (isAdmin) {
-                document.getElementById(`auto-categorize-${collectionName}`).onclick = () => autoCategorizeItems(collectionName);
-            }
-
-            const listContainer = document.getElementById(`list-${collectionName}`);
-            const searchInput = document.getElementById(`search-${collectionName}`);
-            const categoryFilterSelect = document.getElementById(`category-filter-${collectionName}`);
-            
-            let allDocs = [];
-            let allCategories = [];
-
-            const qAssets = query(collection(db, `artifacts/${appId}/public/data/${collectionName}`));
-            const qCategories = query(collection(db, `artifacts/${appId}/public/data/categories`), where("type", "==", collectionName.slice(0, -1)));
-
-            const unsubAssets = onSnapshot(qAssets, (snapshot) => {
-                allDocs = snapshot.docs;
-                renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, searchInput.value, categoryFilterSelect.value);
-            });
-            unsubscribes.push(unsubAssets);
-
-            const unsubCategories = onSnapshot(qCategories, (snapshot) => {
-                allCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data()}));
-                const currentFilter = categoryFilterSelect.value;
-                let optionsHTML = '<option value="">Todas as Categorias</option><option value="none">Sem Categoria</option>';
-                allCategories.sort((a,b) => a.name.localeCompare(b.name)).forEach(cat => {
-                    optionsHTML += `<option value="${cat.id}">${cat.name}</option>`;
-                });
-                categoryFilterSelect.innerHTML = optionsHTML;
-                categoryFilterSelect.value = currentFilter;
-
-                renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, searchInput.value, categoryFilterSelect.value);
-            });
-            unsubscribes.push(unsubCategories);
-            
-            const handleFilterChange = () => {
-                renderFilteredAssets(allDocs, listContainer, collectionName.slice(0, -1), isAdmin, searchInput.value, categoryFilterSelect.value);
-            };
-
-            searchInput.addEventListener('input', handleFilterChange);
-            categoryFilterSelect.addEventListener('change', handleFilterChange);
-        }
-
-        function renderFilteredAssets(docs, container, type, isAdmin, textFilter, categoryFilter) {
-            container.innerHTML = '';
-            const lowercasedTextFilter = textFilter.toLowerCase();
-            
-            let filteredDocs = docs;
-
-            if (categoryFilter) {
-                if (categoryFilter === 'none') {
-                    filteredDocs = filteredDocs.filter(doc => !doc.data().categoryId);
-                } else {
-                    filteredDocs = filteredDocs.filter(doc => doc.data().categoryId === categoryFilter);
-                }
-            }
-            
-            if (lowercasedTextFilter) {
-                filteredDocs = filteredDocs.filter(doc => {
-                    const data = doc.data();
-                    return Object.values(data).some(value => 
-                        String(value).toLowerCase().includes(lowercasedTextFilter)
-                    );
-                });
-            }
-
-            if (filteredDocs.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 mt-4">Nenhum item encontrado.</p>';
-                return;
-            }
-            
-            const groups = filteredDocs.reduce((acc, doc) => {
-                const groupKey = doc.data().categoryName || 'Sem Categoria';
-                if (!acc[groupKey]) acc[groupKey] = [];
-                acc[groupKey].push(doc);
-                return acc;
-            }, {});
-
-            Object.keys(groups).sort((a,b) => {
-                if(a === 'Sem Categoria') return 1;
-                if(b === 'Sem Categoria') return -1;
-                return a.localeCompare(b);
-            }).forEach(groupKey => {
-                const groupHeader = document.createElement('div');
-                groupHeader.className = 'group-header';
-                groupHeader.textContent = groupKey;
-                container.appendChild(groupHeader);
-                
-                const groupContainer = document.createElement('div');
-                groupContainer.className = 'space-y-2';
-                groups[groupKey].forEach(doc => {
-                    groupContainer.appendChild(renderAssetCard(doc.id, doc.data(), type, isAdmin));
-                });
-                container.appendChild(groupContainer);
-            });
-        }
-        
-        function renderAssetCard(id, data, type, isAdmin) {
-            let content = '';
-            switch(type) {
-                case 'machine': 
-                    content = `
-                        <p class="font-bold text-gray-100 text-base">${data.description || 'Sem descrição'}</p>
-                        <p class="text-sm text-gray-400 font-mono mt-1">TAG: ${data.tag || 'N/A'}</p>
-                    `; 
+            switch(viewId) {
+                case 'dashboard-page':
+                    appMainView.innerHTML = getDashboardHTML();
+                    loadUserData(auth.currentUser.uid);
                     break;
-                case 'tool': 
-                    content = `
-                        <p class="font-bold text-gray-100">${data.name || 'N/A'}</p>
-                        <p class="text-sm text-gray-400">Quantidade: ${data.quantity || 0}</p>
-                    `; 
+                case 'admin-page':
+                    appMainView.innerHTML = getAdminDashboardHTML();
+                    loadAdminData();
                     break;
-                case 'part': 
-                    content = `
-                        <p class="font-bold text-gray-100">${data.description || 'N/A'}</p>
-                        <p class="text-sm text-gray-400">Código: ${data.code || 'N/A'} | Quantidade: ${data.quantity || 0}</p>
-                    `; 
+                case 'os-create-page':
+                    appMainView.innerHTML = getOsFormHTML(false);
+                    setupOsForm();
+                    break;
+                case 'os-edit-page':
+                    appMainView.innerHTML = getOsFormHTML(true);
+                    setupOsForm(dataId);
+                    break;
+                case 'os-user-view':
+                case 'os-admin-view':
+                    appMainView.innerHTML = getOsFormHTML(true);
+                    setupOsForm(dataId, true);
+                    break;
+                case 'laudo-create-page':
+                    appMainView.innerHTML = getLaudoFormHTML(false);
+                    setupLaudoForm();
+                    break;
+                case 'laudo-edit-page':
+                    appMainView.innerHTML = getLaudoFormHTML(true);
+                    setupLaudoForm(dataId);
+                    break;
+                case 'laudo-user-view':
+                case 'laudo-admin-view':
+                    appMainView.innerHTML = getLaudoFormHTML(true);
+                    setupLaudoForm(dataId, true, context); // Pass context (like fromOsId)
                     break;
             }
-            const item = document.createElement('div');
-            item.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
-
-            const assetTypePlural = `${type}s`;
-            const permKey = `canCreate${assetTypePlural.charAt(0).toUpperCase() + assetTypePlural.slice(1)}`;
-            const canUserEdit = currentUserData && currentUserData.permissions && currentUserData.permissions[permKey];
-
-            let buttonsHTML = '';
-            if (isAdmin) {
-                buttonsHTML = `
-                    <div class="flex items-center gap-3">
-                        <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-pencil w-4 h-4"></i></button>
-                        <button title="Excluir" class="action-button delete-asset-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-trash-can w-4 h-4"></i></button>
-                    </div>`;
-            } else if (canUserEdit) {
-                 buttonsHTML = `
-                    <div class="flex items-center gap-3">
-                        <button title="Editar" class="action-button edit-asset-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all duration-200"><i class="fa-solid fa-pencil w-4 h-4"></i></button>
-                    </div>`;
-            }
-
-            item.innerHTML = `<div class="flex-grow">${content}</div> ${buttonsHTML}`;
-
-            if (isAdmin || canUserEdit) {
-                const editButton = item.querySelector('.edit-asset-button');
-                if (editButton) editButton.onclick = () => manageAsset(type, id, isAdmin);
-            }
-            if (isAdmin) {
-                const deleteButton = item.querySelector('.delete-asset-button');
-                if (deleteButton) deleteButton.onclick = () => deleteAsset(`${type}s`, id);
-            }
-            return item;
         }
 
-        async function manageAsset(type, id = null, isAdmin) {
-            await fetchAllAssetsAndCategories();
-            const data = id ? (await getDoc(doc(db, `artifacts/${appId}/public/data/${type}s`, id))).data() : {};
-            const categories = fetchedAssets.categories.filter(c => c.type === type);
-            const categoryOptions = categories.map(cat => `<option value="${cat.id}" ${data.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('');
+        // --- MASTER RENDER FUNCTIONS ---
+        let osData = [], laudosData = [];
 
-            let title, fieldsHTML;
-            const inputClass = "w-full p-2 bg-gray-900 border border-gray-600 rounded";
-            
-            switch(type) {
-                case 'machine':
-                    title = id ? 'Editar Máquina' : 'Adicionar Máquina';
-                    fieldsHTML = `<div><label class="text-gray-300">TAG:</label><input name="tag" class="${inputClass}" value="${data.tag || ''}" required></div><div><label class="text-gray-300">Descrição:</label><input name="description" class="${inputClass}" value="${data.description || ''}" required></div>`;
-                    break;
-                case 'tool':
-                    title = id ? 'Editar Ferramenta' : 'Adicionar Ferramenta';
-                    fieldsHTML = `<div><label class="text-gray-300">Nome:</label><input name="name" class="${inputClass}" value="${data.name || ''}" required></div><div><label class="text-gray-300">Quantidade:</label><input type="number" name="quantity" class="${inputClass}" value="${data.quantity || '0'}" required></div>`;
-                    break;
-                case 'part':
-                    title = id ? 'Editar Peça' : 'Adicionar Peça';
-                    fieldsHTML = `<div><label class="text-gray-300">Código:</label><input name="code" class="${inputClass}" value="${data.code || ''}" required></div><div><label class="text-gray-300">Descrição:</label><input name="description" class="${inputClass}" value="${data.description || ''}" required></div><div><label class="text-gray-300">Quantidade:</label><input type="number" name="quantity" class="${inputClass}" value="${data.quantity || '0'}" required></div>`;
-                    break;
-            }
+        async function renderUserDashboard() {
+            const osListEl = document.getElementById('os-list');
+            const laudosListEl = document.getElementById('laudos-list');
+            if (!osListEl || !laudosListEl) return;
 
-            const contentHTML = `<form id="asset-form" class="space-y-4">${fieldsHTML}<div><label class="text-gray-300">Categoria:</label><select name="categoryId" class="${inputClass}"><option value="">Nenhuma</option>${categoryOptions}</select></div></form>`;
-            const footerHTML = `<button id="cancel-modal" class="bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-500">Cancelar</button><button id="save-asset" class="bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700">Salvar</button>`;
-            ui.modalContainer.innerHTML = createModalHTML(title, contentHTML, footerHTML);
-            
-            document.getElementById('cancel-modal').onclick = closeModal;
-            document.getElementById('close-modal-button').onclick = closeModal;
-            document.getElementById('save-asset').onclick = async () => {
-                const form = document.getElementById('asset-form');
-                if (form.checkValidity()) {
-                    const formData = new FormData(form);
-                    const dataToSave = {};
-                    formData.forEach((value, key) => { dataToSave[key] = isNaN(Number(value)) || value === '' || key === 'code' || key === 'tag' ? value : Number(value); });
-
-                    const categorySelect = form.elements.categoryId;
-                    if(categorySelect.value) {
-                        dataToSave.categoryId = categorySelect.value;
-                        dataToSave.categoryName = categorySelect.options[categorySelect.selectedIndex].text;
-                    } else {
-                        dataToSave.categoryId = '';
-                        dataToSave.categoryName = '';
-                    }
-
-                    try {
-                        const collectionName = `${type}s`;
-                        if (id) {
-                            await updateDoc(doc(db, `artifacts/${appId}/public/data/${collectionName}`, id), dataToSave);
-                            showSuccess("Item atualizado com sucesso!");
-                        } else {
-                            await addDoc(collection(db, `artifacts/${appId}/public/data/${collectionName}`), dataToSave);
-                            showSuccess("Item adicionado com sucesso!");
-                        }
-                        closeModal();
-                    } catch(e) { console.error("Erro ao salvar:", e); showError("Falha ao salvar o item."); }
-                } else {
-                    form.reportValidity();
-                }
-            };
-        }
-        
-        async function deleteAsset(collectionName, id) {
-             showConfirmationModal(
-                'Excluir Item',
-                'Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.',
-                async () => {
-                    try {
-                        await deleteDoc(doc(db, `artifacts/${appId}/public/data/${collectionName}`, id));
-                        showSuccess("Item excluído com sucesso.");
-                    } catch(e) {
-                        showError("Falha ao excluir o item.");
-                        console.error("Delete asset error:", e);
-                    }
-                }
-            );
-        }
-
-        // --- Category Management Functions ---
-        function loadAdminCategories(container) {
-            container.innerHTML = `<div id="category-list" class="space-y-2"></div>`;
-            const listContainer = document.getElementById('category-list');
-
-            const q = query(collection(db, `artifacts/${appId}/public/data/categories`));
-            const unsub = onSnapshot(q, (snapshot) => {
-                listContainer.innerHTML = snapshot.empty ? '<p class="text-gray-500">Nenhuma categoria encontrada.</p>' : '';
-                const categoriesByType = snapshot.docs.reduce((acc, doc) => {
-                    const cat = { id: doc.id, ...doc.data() };
-                    if(!acc[cat.type]) acc[cat.type] = [];
-                    acc[cat.type].push(cat);
-                    return acc;
-                }, {});
-
-                Object.keys(categoriesByType).sort().forEach(type => {
-                    const typeName = { machine: 'Máquinas', tool: 'Ferramentas', part: 'Peças'}[type] || 'Outras';
-                    const groupHeader = document.createElement('div');
-                    groupHeader.className = 'group-header';
-                    groupHeader.textContent = typeName;
-                    listContainer.appendChild(groupHeader);
-                    
-                    const groupContainer = document.createElement('div');
-                    groupContainer.className = 'space-y-2';
-                    categoriesByType[type].sort((a,b) => a.name.localeCompare(b.name)).forEach(category => {
-                        const card = document.createElement('div');
-                        card.className = "bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center";
-                        card.innerHTML = `
-                            <p class="font-semibold text-gray-100">${category.name}</p>
-                            <div class="flex items-center gap-3">
-                               <button title="Editar Categoria" class="action-button p-2 rounded-full text-blue-400 bg-gray-700 hover:bg-blue-500 hover:text-white transition-all"><i class="fa-solid fa-pencil w-4 h-4"></i></button>
-                               <button title="Excluir Categoria" class="action-button p-2 rounded-full text-red-400 bg-gray-700 hover:bg-red-500 hover:text-white transition-all"><i class="fa-solid fa-trash-can w-4 h-4"></i></button>
-                            </div>
-                        `;
-                        card.querySelector('[title="Editar Categoria"]').onclick = () => manageCategory(category.id, category);
-                        card.querySelector('[title="Excluir Categoria"]').onclick = () => deleteCategory(category.id, category.name);
-                        groupContainer.appendChild(card);
-                    });
-                     listContainer.appendChild(groupContainer);
-                });
-            });
-            unsubscribes.push(unsub);
-        }
-
-        async function manageCategory(id = null, data = {}) {
-            const title = id ? 'Editar Categoria' : 'Adicionar Categoria';
-            const content = `
-                <form id="category-form" class="space-y-4">
-                    <div>
-                        <label class="text-gray-300">Nome da Categoria:</label>
-                        <input name="name" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded" value="${data.name || ''}" required>
-                    </div>
-                    <div>
-                        <label class="text-gray-300">Tipo da Categoria:</label>
-                        <select name="type" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded" required>
-                            <option value="">Selecione um tipo</option>
-                            <option value="machine" ${data.type === 'machine' ? 'selected' : ''}>Máquina</option>
-                            <option value="tool" ${data.type === 'tool' ? 'selected' : ''}>Ferramenta</option>
-                            <option value="part" ${data.type === 'part' ? 'selected' : ''}>Peça</option>
-                        </select>
-                    </div>
-                </form>`;
-            const footer = `<button id="cancel-modal" class="bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg mr-2 hover:bg-gray-500">Cancelar</button><button id="save-category" class="bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700">Salvar</button>`;
-            ui.modalContainer.innerHTML = createModalHTML(title, content, footer);
-
-            document.getElementById('cancel-modal').onclick = closeModal;
-            document.getElementById('close-modal-button').onclick = closeModal;
-            document.getElementById('save-category').onclick = async () => {
-                const form = document.getElementById('category-form');
-                const name = form.elements.name.value;
-                const type = form.elements.type.value;
-                if(name && type) {
-                    try {
-                        const collectionRef = collection(db, `artifacts/${appId}/public/data/categories`);
-                        if(id) {
-                            await setDoc(doc(collectionRef, id), { name, type });
-                            showSuccess('Categoria atualizada!');
-                        } else {
-                            await addDoc(collectionRef, { name, type });
-                            showSuccess('Categoria criada!');
-                        }
-                        fetchAllAssetsAndCategories();
-                        closeModal();
-                    } catch (e) {
-                        showError('Erro ao salvar categoria.');
-                        console.error(e);
-                    }
-                } else {
-                    showError('Nome e tipo são obrigatórios.');
-                }
-            };
-        }
-
-        async function deleteCategory(id, name) {
-            showConfirmationModal(
-                'Excluir Categoria',
-                `Tem certeza que deseja excluir a categoria "${name}"? Os itens nesta categoria ficarão sem categoria.`,
-                async () => {
-                    try {
-                        await deleteDoc(doc(db, `artifacts/${appId}/public/data/categories`, id));
-                        showSuccess("Categoria excluída.");
-                        fetchAllAssetsAndCategories();
-                    } catch(e) {
-                        showError("Falha ao excluir a categoria.");
-                        console.error(e);
-                    }
-                }
-            );
-        }
-        
-        async function autoCategorizeItems(assetTypeToProcess) {
-            showToast(`Analisando ${assetTypeToProcess}...`, 'info');
-            await fetchAllAssetsAndCategories(); // Ensure we have the latest data
-            
-            const allCategories = fetchedAssets.categories;
-            const batch = writeBatch(db);
-            let updatedCount = 0;
-
-            const assetConfig = {
-                machines: { field: 'description' },
-                tools: { field: 'name' },
-                parts: { field: 'description' }
-            }[assetTypeToProcess];
-
-            const assetTypeSingular = assetTypeToProcess.slice(0, -1);
-            const relevantCategories = allCategories.filter(c => c.type === assetTypeSingular);
-            const itemsToProcess = fetchedAssets[assetTypeToProcess].filter(item => !item.categoryId);
-
-            itemsToProcess.forEach(itemData => {
-                const itemText = (itemData[assetConfig.field] || '').toLowerCase();
-                if (!itemText) return;
-                
-                let bestMatch = null;
-                let longestMatchLength = 0;
-
-                relevantCategories.forEach(cat => {
-                    const catName = cat.name.toLowerCase();
-                    if (itemText.includes(catName)) {
-                        if (catName.length > longestMatchLength) {
-                            longestMatchLength = catName.length;
-                            bestMatch = cat;
-                        }
-                    }
-                });
-
-                if (bestMatch) {
-                    const itemRef = doc(db, `artifacts/${appId}/public/data/${assetTypeToProcess}`, itemData.id);
-                    batch.update(itemRef, {
-                        categoryId: bestMatch.id,
-                        categoryName: bestMatch.name
-                    });
-                    updatedCount++;
+            const closedLaudoIds = new Set();
+            osData.forEach(osDoc => {
+                const os = osDoc.data();
+                if (os.status === 'fechado' && os.linkedLaudoId) {
+                    closedLaudoIds.add(os.linkedLaudoId);
                 }
             });
 
-            if (updatedCount > 0) {
-                try {
-                    await batch.commit();
-                    showSuccess(`${updatedCount} ${updatedCount > 1 ? 'itens foram' : 'item foi'} categorizado(s) automaticamente!`);
-                } catch(e) {
-                    showError("Erro ao salvar as categorias automáticas.");
-                    console.error("Auto-categorize error:", e);
-                }
+            let osHtml = '';
+            const sortedOs = osData.sort((a, b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
+            if (sortedOs.length === 0) {
+                osListEl.innerHTML = '<p class="text-white/50 col-span-full">Nenhuma ordem de serviço encontrada.</p>';
             } else {
-                showToast(`Nenhum(a) ${assetTypeSingular} para categorizar.`, "info");
+                for (const doc of sortedOs) {
+                    const os = doc.data();
+                    const createdDate = os.createdAt ? os.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data indisponível';
+                    let permissionButtonHTML = '';
+                    if (os.editRequest === 'pending') { permissionButtonHTML = `<button disabled class="flex-1 bg-yellow-500/50 text-white font-bold py-2 px-4 rounded-xl transition">Pendente</button>`;
+                    } else if (os.editRequest === 'denied') { permissionButtonHTML = `<button onclick="requestPermission('serviceOrders', '${doc.id}')" class="flex-1 bg-red-500/80 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-xl transition">Solicitar Novamente</button>`;
+                    } else if (os.editRequest === 'approved') { permissionButtonHTML = `<button onclick="renderView('os-edit-page', '${doc.id}')" class="flex-1 bg-green-500/80 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-xl transition">Editar</button>`;
+                    } else { permissionButtonHTML = `<button onclick="requestPermission('serviceOrders', '${doc.id}')" class="flex-1 bg-gray-500/80 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-xl transition">Permissão</button>`; }
+                    
+                    const isClosed = os.status === 'fechado';
+                    const isCollaborator = os.userId !== auth.currentUser.uid;
+                    const creatorName = await getUserName(os.userId);
+
+                    osHtml += `<div class="glass-card text-left p-6 rounded-2xl flex flex-col justify-between ${isClosed ? 'border-green-500' : ''}">
+                                <div>
+                                    <h3 class="font-bold text-xl mb-2 text-blue-300 flex justify-between items-center"><span>O.S. #${os.numeroOS}</span>${isClosed ? '<span class="px-2 py-1 rounded-full text-xs font-bold bg-green-500 text-white">Fechado</span>' : ''}</h3>
+                                    <p><span class="font-semibold text-white/70">Cliente:</span> ${os.cliente}</p>
+                                    ${isCollaborator ? `<p class="text-sm text-indigo-300"><span class="font-semibold">Compartilhado por:</span> ${creatorName}</p>` : ''}
+                                    <p class="text-sm mt-2 text-white/50">Criado em: ${createdDate}</p>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button onclick="renderView('os-user-view', '${doc.id}')" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-4 rounded-xl transition">Ver Detalhes</button>
+                                    ${permissionButtonHTML}
+                                </div>
+                             </div>`;
+                };
+                osListEl.innerHTML = osHtml;
+            }
+
+            let laudosHtml = '';
+            const sortedLaudos = laudosData.sort((a, b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
+            if (sortedLaudos.length === 0) {
+                laudosListEl.innerHTML = '<p class="text-white/50 col-span-full">Nenhum laudo técnico encontrado.</p>';
+            } else {
+                 for (const doc of sortedLaudos) {
+                    const laudo = doc.data();
+                    const createdDate = laudo.createdAt ? laudo.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data indisponível';
+                    let permissionButtonHTML = '';
+                    if (laudo.editRequest === 'pending') { permissionButtonHTML = `<button disabled class="flex-1 bg-yellow-500/50 text-white font-bold py-2 px-4 rounded-xl transition">Pendente</button>`;
+                    } else if (laudo.editRequest === 'denied') { permissionButtonHTML = `<button onclick="requestPermission('laudos', '${doc.id}')" class="flex-1 bg-red-500/80 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-xl transition">Solicitar Novamente</button>`;
+                    } else if (laudo.editRequest === 'approved') { permissionButtonHTML = `<button onclick="renderView('laudo-edit-page', '${doc.id}')" class="flex-1 bg-green-500/80 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-xl transition">Editar</button>`;
+                    } else { permissionButtonHTML = `<button onclick="requestPermission('laudos', '${doc.id}')" class="flex-1 bg-gray-500/80 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-xl transition">Permissão</button>`; }
+                    
+                    const isCollaborator = laudo.userId !== auth.currentUser.uid;
+                    const creatorName = await getUserName(laudo.userId);
+                    const isLinkedToClosedOs = closedLaudoIds.has(doc.id);
+
+                    laudosHtml += `<div class="glass-card p-6 rounded-2xl flex flex-col justify-between ${isLinkedToClosedOs ? 'border-green-500' : ''}">
+                                <div>
+                                    <h3 class="font-bold text-xl mb-2 text-indigo-300">Laudo: ${laudo.marca} ${laudo.modelo}</h3>
+                                    <p><span class="font-semibold text-white/70">Nº Série:</span> ${laudo.numeroSerie}</p>
+                                    ${isCollaborator ? `<p class="text-sm text-indigo-300"><span class="font-semibold">Compartilhado por:</span> ${creatorName}</p>` : ''}
+                                    <p class="text-sm mt-2 text-white/50">Criado em: ${createdDate}</p>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button onclick="renderView('laudo-user-view', '${doc.id}')" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-4 rounded-xl transition">Ver Detalhes</button>
+                                    ${permissionButtonHTML}
+                                </div>
+                             </div>`;
+                };
+                laudosListEl.innerHTML = laudosHtml;
             }
         }
 
-        // --- Maintenance Form Functions ---
-        ui.newFormButton.addEventListener('click', async () => {
-            try {
-                showToast("Carregando dados...", "info");
-                const assets = await fetchAllAssetsAndCategories();
-                ui.maintenanceFormContainer.innerHTML = createMaintenanceFormHTML({}, null, 1, assets);
-                ui.maintenanceFormContainer.classList.remove('hidden');
-                ui.maintenanceFormContainer.scrollIntoView({ behavior: 'smooth' });
-                attachFormListeners(assets);
-            } catch(e) {
-                showError("Erro ao carregar dados do formulário.");
-                console.error("New form error:", e);
-            }
-        });
+        async function renderAdminDashboard() {
+            const adminOsListAbertas = document.getElementById('admin-os-list-abertas');
+            const adminLaudosListAbertos = document.getElementById('admin-laudos-list-abertos');
+            const adminOsListFechadas = document.getElementById('admin-os-list-fechadas');
+            const adminLaudosListFechados = document.getElementById('admin-laudos-list-fechados');
 
-        async function editMaintenanceForm(formId) {
-            try {
-                showToast("Carregando dados...", "info");
-                const assets = await fetchAllAssetsAndCategories();
-                const docRef = doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
+            if (!adminOsListAbertas) return;
+
+            let osHtmlAbertas = '', osHtmlFechadas = '';
+            const closedOsLinkedLaudoIds = new Set();
+
+            for (const doc of osData) {
+                const os = doc.data();
+                const userName = await getUserName(os.userId);
+                const createdDate = os.createdAt ? os.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data indisponível';
+                let requestIndicator = '';
+                let actions = `<button class="text-blue-400 hover:text-blue-300 mr-2" onclick="editOsStatus('${doc.id}', '${os.status}')">Status</button><button class="text-red-400 hover:text-red-300" onclick="deleteItem('serviceOrders', '${doc.id}')">Excluir</button>`;
+                if (os.editRequest === 'pending') {
+                    requestIndicator = '<span class="text-yellow-400 ml-2 font-semibold">(Solicitação Pendente)</span>';
+                    actions = `<button class="text-green-400 hover:text-green-300 mr-2" onclick="managePermission('serviceOrders', '${doc.id}', 'approved')">Aprovar</button><button class="text-red-500 hover:text-red-400 mr-2" onclick="managePermission('serviceOrders', '${doc.id}', 'denied')">Negar</button>` + actions;
+                }
+                const rowHtml = `<tr class="border-b border-white/10 hover:bg-white/5"><td class="p-3 cursor-pointer" onclick="renderView('os-admin-view', '${doc.id}')">${os.numeroOS}</td><td class="p-3 cursor-pointer" onclick="renderView('os-admin-view', '${doc.id}')">${os.cliente}${requestIndicator}</td><td class="p-3"><span class="px-2 py-1 rounded-full text-xs font-bold ${os.status === 'aberto' ? 'bg-yellow-500 text-black' : 'bg-green-500 text-white'}">${os.status}</span></td><td class="p-3">${userName}</td><td class="p-3">${createdDate}</td><td class="p-3 text-right">${actions}</td></tr>`;
+
+                if (os.status === 'fechado') {
+                    osHtmlFechadas += rowHtml;
+                    if (os.linkedLaudoId) closedOsLinkedLaudoIds.add(os.linkedLaudoId);
+                } else { osHtmlAbertas += rowHtml; }
+            }
+            adminOsListAbertas.innerHTML = osHtmlAbertas || '<tr><td colspan="6" class="p-4 text-center text-white/50">Nenhuma O.S. aberta encontrada.</td></tr>';
+            adminOsListFechadas.innerHTML = osHtmlFechadas || '<tr><td colspan="6" class="p-4 text-center text-white/50">Nenhuma O.S. fechada encontrada.</td></tr>';
+
+            let laudosHtmlAbertos = '', laudosHtmlFechados = '';
+            for (const doc of laudosData) {
+                const laudo = doc.data();
+                const userName = await getUserName(laudo.userId);
+                const createdDate = laudo.createdAt ? laudo.createdAt.toDate().toLocaleDateString('pt-BR') : 'Data indisponível';
+                let requestIndicator = '';
+                let actions = `<button class="text-red-400 hover:text-red-300" onclick="event.stopPropagation(); deleteItem('laudos', '${doc.id}')">Excluir</button>`;
+                if (laudo.editRequest === 'pending') {
+                    requestIndicator = '<span class="text-yellow-400 ml-2 font-semibold">(Solicitação Pendente)</span>';
+                    actions = `<button class="text-green-400 hover:text-green-300 mr-2" onclick="managePermission('laudos', '${doc.id}', 'approved')">Aprovar</button><button class="text-red-500 hover:text-red-400 mr-2" onclick="managePermission('laudos', '${doc.id}', 'denied')">Negar</button>` + actions;
+                }
+                const rowHtml = `<tr class="border-b border-white/10 hover:bg-white/5 cursor-pointer" onclick="renderView('laudo-admin-view', '${doc.id}')"><td class="p-3">${laudo.marca} ${laudo.modelo}${requestIndicator}</td><td class="p-3">${laudo.numeroSerie}</td><td class="p-3">${userName}</td><td class="p-3">${createdDate}</td><td class="p-3 text-right">${actions}</td></tr>`;
+
+                if (closedOsLinkedLaudoIds.has(doc.id)) { laudosHtmlFechados += rowHtml;
+                } else { laudosHtmlAbertos += rowHtml; }
+            }
+            adminLaudosListAbertos.innerHTML = laudosHtmlAbertos || '<tr><td colspan="5" class="p-4 text-center text-white/50">Nenhum Laudo encontrado.</td></tr>';
+            adminLaudosListFechados.innerHTML = laudosHtmlFechados || '<tr><td colspan="5" class="p-4 text-center text-white/50">Nenhum Laudo vinculado a O.S. fechada.</td></tr>';
+        }
+
+        // --- DATA LOADING FUNCTIONS ---
+        function loadUserData(userId) {
+            const unsubOs = db.collection('serviceOrders').where('memberIds', 'array-contains', userId).onSnapshot(snapshot => {
+                osData = snapshot.docs;
+                renderUserDashboard();
+            }, error => { console.error("Erro ao carregar Ordens de Serviço: ", error); });
+            currentUnsubscribes.push(unsubOs);
+            
+            const unsubLaudos = db.collection('laudos').where('memberIds', 'array-contains', userId).onSnapshot(snapshot => {
+                laudosData = snapshot.docs;
+                renderUserDashboard();
+            }, error => { console.error("Erro ao carregar Laudos: ", error); });
+            currentUnsubscribes.push(unsubLaudos);
+        }
+
+        function loadAdminData() {
+            document.getElementById('admin-tab-abertas').addEventListener('click', () => switchAdminTab('abertas'));
+            document.getElementById('admin-tab-fechadas').addEventListener('click', () => switchAdminTab('fechadas'));
+            switchAdminTab('abertas'); // Default tab
+
+            const unsubOs = db.collection('serviceOrders').onSnapshot(async (snapshot) => {
+                document.getElementById('os-total-count').textContent = snapshot.size;
+                document.getElementById('os-aberto-count').textContent = snapshot.docs.filter(d => d.data().status === 'aberto').length;
+                osData = snapshot.docs;
+                await renderAdminDashboard();
+            }, error => { console.error("Erro no listener de O.S. do Admin: ", error); });
+            currentUnsubscribes.push(unsubOs);
+            
+            const unsubLaudos = db.collection('laudos').onSnapshot(async (snapshot) => {
+                document.getElementById('laudos-total-count').textContent = snapshot.size;
+                laudosData = snapshot.docs;
+                await renderAdminDashboard();
+            }, error => { console.error("Erro no listener de Laudos do Admin: ", error); });
+            currentUnsubscribes.push(unsubLaudos);
+        }
+
+        function switchAdminTab(tab) {
+            const abertasTab = document.getElementById('admin-tab-abertas');
+            const fechadasTab = document.getElementById('admin-tab-fechadas');
+            const abertasContent = document.getElementById('admin-content-abertas');
+            const fechadasContent = document.getElementById('admin-content-fechadas');
+
+            if (tab === 'abertas') {
+                abertasTab.classList.add('active');
+                fechadasTab.classList.remove('active');
+                abertasContent.classList.remove('hidden');
+                fechadasContent.classList.add('hidden');
+            } else {
+                fechadasTab.classList.add('active');
+                abertasTab.classList.remove('active');
+                fechadasContent.classList.remove('hidden');
+                abertasContent.classList.add('hidden');
+            }
+        }
+        
+        async function setupLaudoForm(laudoId = null, isReadOnly = false, fromOsId = null) {
+            const laudoForm = document.getElementById('laudo-form');
+            const backButton = document.getElementById('form-back-button');
+            
+            if (fromOsId) {
+                backButton.onclick = () => renderView('os-admin-view', fromOsId);
+            } else {
+                backButton.onclick = () => goHome();
+            }
+
+            const isEditing = laudoId !== null;
+
+            if(isEditing) {
+                const docRef = db.collection('laudos').doc(laudoId);
+                const docSnap = await docRef.get();
+                if (docSnap.exists) {
                     const data = docSnap.data();
-                    const latest = data.versions['v' + data.latestVersion];
-                    ui.maintenanceFormContainer.innerHTML = createMaintenanceFormHTML(latest, formId, data.latestVersion, assets);
-                    ui.maintenanceFormContainer.classList.remove('hidden');
-                    ui.maintenanceFormContainer.scrollIntoView({ behavior: 'smooth' });
-                    attachFormListeners(assets);
-                } else showError("Ficha não encontrada.");
-            } catch (e) {
-                showError("Erro ao carregar dados do formulário.");
-                console.error("Edit form error:", e);
-            }
-        }
+                    laudoForm.querySelector('#laudo-id').value = laudoId;
+                    laudoForm.querySelector('#laudo-numero-serie').value = data.numeroSerie || '';
+                    laudoForm.querySelector('#laudo-marca').value = data.marca || '';
+                    laudoForm.querySelector('#laudo-modelo').value = data.modelo || '';
+                    laudoForm.querySelector('#laudo-problema').value = data.problemaApresentado || '';
+                    laudoForm.querySelector('#laudo-solucao').value = data.solucao || '';
 
-        function attachFormListeners(assets) {
-            const form = document.getElementById('maintenance-form');
-            form.addEventListener('submit', handleFormSubmit);
-            document.getElementById('cancel-form-button').onclick = () => {
-                ui.maintenanceFormContainer.classList.add('hidden');
-                ui.maintenanceFormContainer.innerHTML = '';
-            };
-            document.getElementById('tag-select').onchange = (e) => {
-                const selectedOption = e.target.options[e.target.selectedIndex];
-                document.getElementById('equipamento-description').value = selectedOption.dataset.description || '';
-            };
-            const setupRowListeners = (tableBody) => {
-                tableBody.querySelectorAll('.remove-row-button').forEach(btn => btn.onclick = (e) => e.target.closest('tr').remove());
-                tableBody.querySelectorAll('.part-select').forEach(sel => sel.onchange = (e) => {
-                    const part = assets.parts.find(p => p.id === e.target.value);
-                    e.target.closest('tr').querySelector('[name="pecaCodigo"]').value = part ? part.code : '';
-                });
-            };
-            document.getElementById('add-mao-de-obra').onclick = () => {
-                const tableBody = document.querySelector('#mao-de-obra-table tbody');
-                const newRow = tableBody.insertRow();
-                newRow.innerHTML = `<td class="p-2"><input type="text" name="maoObraNome" class="w-full p-2 bg-gray-900 border border-gray-600 rounded"></td><td class="p-2"><input type="text" name="maoObraCodigo" class="w-full p-2 bg-gray-900 border border-gray-600 rounded"></td><td class="p-2 text-center"><button type="button" class="remove-row-button text-red-500 hover:text-red-700 text-2xl">&times;</button></td>`;
-                setupRowListeners(document.querySelector('#mao-de-obra-table'));
-            };
-            document.getElementById('add-peca-utilizada').onclick = () => {
-                const tableBody = document.querySelector('#pecas-utilizadas-table tbody');
-                const newRow = tableBody.insertRow();
-                newRow.innerHTML = createPecaRowHTML({}, assets.parts);
-                setupRowListeners(document.querySelector('#pecas-utilizadas-table'));
-            };
-            setupRowListeners(form);
-        }
-
-        async function handleFormSubmit(event) {
-            event.preventDefault();
-            const form = event.target;
-            const formId = form.dataset.id;
-            const formData = new FormData(form);
-            const data = {};
-            for (let [key, value] of formData.entries()) {
-                if (!key.startsWith('maoObra') && !key.startsWith('peca')) {
-                    if (form.elements[key].type === 'checkbox' && !key.startsWith('tipoServico')) continue;
-                    data[key] = value;
-                }
-            }
-            data.tipoServico = formData.getAll('tipoServico');
-            data.parouMaquina = form.elements.parouMaquina.checked;
-            data.maoDeObra = Array.from(document.querySelectorAll('#mao-de-obra-table tbody tr')).map(row => ({
-                nome: row.querySelector('[name="maoObraNome"]').value,
-                codigo: row.querySelector('[name="maoObraCodigo"]').value
-            })).filter(item => item.nome || item.codigo);
-            data.pecasUtilizadas = Array.from(document.querySelectorAll('#pecas-utilizadas-table tbody tr')).map(row => {
-                const pecaId = row.querySelector('[name="pecaId"]').value;
-                const selectedPart = fetchedAssets.parts.find(p => p.id === pecaId);
-                return {
-                    partId: pecaId,
-                    codigo: selectedPart ? selectedPart.code : '',
-                    descricao: selectedPart ? selectedPart.description : '',
-                    qtd: row.querySelector('[name="pecaQtd"]').value,
-                };
-            }).filter(item => item.partId && item.qtd);
-            
-            try {
-                if (formId) {
-                    const formDocRef = doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId);
-                    const formDoc = await getDoc(formDocRef);
-                    if (formDoc.exists()) {
-                        const existingData = formDoc.data();
-                        const newVersion = existingData.latestVersion + 1;
-                        await updateDoc(formDocRef, {
-                           latestVersion: newVersion,
-                           [`versions.v${newVersion}`]: data,
-                           updatedAt: serverTimestamp()
-                        });
-                        showSuccess("Ficha atualizada para V" + newVersion);
+                    if (isReadOnly) {
+                        laudoForm.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
+                        laudoForm.querySelector('#laudo-form-buttons').style.display = 'none';
+                        return;
                     }
-                } else {
-                    await addDoc(collection(db, `artifacts/${appId}/public/data/maintenance_forms`), {
-                        creatorUid: currentUserData.uid,
-                        creatorName: currentUserData.name,
-                        createdAt: serverTimestamp(),
-                        latestVersion: 1,
-                        status: 'Aguardando',
-                        isArchived: false,
-                        versions: { v1: data }
-                    });
-                    showSuccess("Ficha criada com sucesso!");
+
+                    const user = auth.currentUser;
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    const userIsAdmin = userDoc.exists && userDoc.data().role === 'admin';
+
+                    if (!userIsAdmin && data.editRequest !== 'approved') {
+                        laudoForm.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
+                        laudoForm.querySelector('#laudo-form-buttons').innerHTML = `<p class="text-yellow-400 text-right font-semibold">Aguardando aprovação do administrador para editar.</p>`;
+                    }
                 }
-                ui.maintenanceFormContainer.classList.add('hidden');
-                ui.maintenanceFormContainer.innerHTML = '';
-            } catch (error) {
-                console.error("Erro ao salvar ficha:", error);
-                showError("Ocorreu um erro ao salvar.");
+            }
+            
+            laudoForm.addEventListener('submit', handleLaudoFormSubmit);
+        }
+
+        function handleLaudoFormSubmit(e) {
+            e.preventDefault();
+            const submitButton = document.getElementById('submit-laudo-button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Salvando...';
+
+            const user = auth.currentUser;
+            const laudoId = document.getElementById('laudo-id').value;
+            const isEditing = laudoId !== '';
+
+            const data = {
+                numeroSerie: document.getElementById('laudo-numero-serie').value,
+                marca: document.getElementById('laudo-marca').value,
+                modelo: document.getElementById('laudo-modelo').value,
+                problemaApresentado: document.getElementById('laudo-problema').value,
+                solucao: document.getElementById('laudo-solucao').value,
+            };
+
+            const promise = isEditing
+                ? db.collection('laudos').doc(laudoId).update({ ...data, editRequest: 'used' })
+                : db.collection('laudos').add({ ...data, userId: user.uid, memberIds: [user.uid], createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+            promise.then(() => {
+                showToast(`Laudo ${isEditing ? 'atualizado' : 'salvo'} com sucesso!`, 'success');
+                goHome();
+            }).catch(error => {
+                showModal("Erro ao salvar o laudo: " + error.message, 'Erro');
+            }).finally(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = isEditing ? 'Atualizar Laudo' : 'Salvar Laudo';
+            });
+        }
+
+        async function setupOsForm(osId = null, isReadOnly = false) {
+            const osForm = document.getElementById('os-form');
+            document.getElementById('form-back-button').onclick = () => goHome();
+            const isEditing = osId !== null;
+
+            await populateUsersDropdown();
+
+            if (isEditing) {
+                const docRef = db.collection('serviceOrders').doc(osId);
+                const docSnap = await docRef.get();
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    await populateLaudosDropdown(data.linkedLaudoId);
+                    osForm.querySelector('#os-id').value = osId;
+                    osForm.querySelector('#os-cliente').value = data.cliente || '';
+                    osForm.querySelector('#os-numero-os').value = data.numeroOS || '';
+                    osForm.querySelector('#os-tag').value = data.tag || '';
+                    osForm.querySelector('#os-motivo').value = data.motivo || '';
+                    osForm.querySelector('#os-tipo-servico').value = data.tipoServico || 'Corretiva';
+                    if (data.maquinaParou !== undefined) { osForm.querySelector(`input[name="maquina-parou"][value="${data.maquinaParou}"]`).checked = true; }
+                    osForm.querySelector('#os-causa').value = data.causa || '';
+                    osForm.querySelector('#os-descricao-servico').value = data.descricaoServico || '';
+                    if (data.inicioOcorrencia?.toDate) { osForm.querySelector('#os-inicio-ocorrencia').value = new Date(data.inicioOcorrencia.toDate().getTime() - (data.inicioOcorrencia.toDate().getTimezoneOffset() * 60000)).toISOString().slice(0, 16); }
+                    if (data.fimOcorrencia?.toDate) { osForm.querySelector('#os-fim-ocorrencia').value = new Date(data.fimOcorrencia.toDate().getTime() - (data.fimOcorrencia.toDate().getTimezoneOffset() * 60000)).toISOString().slice(0, 16); }
+                    osForm.querySelector('#pecas-container').innerHTML = '';
+                    (data.pecas || []).forEach(peca => addPecaField(peca));
+                    osForm.querySelector('#mao-de-obra-container').innerHTML = '';
+                    (data.maoDeObra || []).forEach(func => addFuncionarioField(func));
+                    
+                    document.getElementById('collaborators-list').innerHTML = '';
+                    (data.collaborators || []).forEach(c => renderCollaborator(c));
+
+
+                    if (isReadOnly) {
+                        osForm.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+                        osForm.querySelector('#os-form-buttons').style.display = 'none';
+                        osForm.querySelectorAll('button[type="button"]').forEach(btn => btn.style.display = 'none');
+
+                        const laudoLinkContainer = document.getElementById('laudo-link-container');
+                        const linkedLaudoId = data.linkedLaudoId;
+                        if (linkedLaudoId) {
+                            const laudoSelect = document.getElementById('os-linked-laudo');
+                            const selectedOption = laudoSelect.querySelector(`option[value="${linkedLaudoId}"]`);
+                            const laudoText = selectedOption ? selectedOption.textContent : 'Laudo Vinculado';
+
+                            laudoLinkContainer.innerHTML = `
+                                <label class="block mb-2 text-white/70">Laudo Vinculado</label>
+                                <button type="button" id="laudo-nav-button"
+                                        class="glass-input text-left w-full p-3 rounded-xl hover:border-indigo-400 border border-transparent transition flex justify-between items-center">
+                                    <span>${laudoText}</span>
+                                    <span class="text-indigo-300 font-bold">&rarr;</span>
+                                </button>
+                            `;
+                            document.getElementById('laudo-nav-button').onclick = () => {
+                                renderView('laudo-admin-view', { id: linkedLaudoId, context: osId });
+                            };
+                        } else {
+                            laudoLinkContainer.innerHTML = `
+                                <label class="block mb-2 text-white/70">Laudo Vinculado</label>
+                                <p class="glass-input w-full p-3 rounded-xl opacity-60">Nenhum laudo vinculado</p>
+                            `;
+                        }
+                        return;
+                    }
+
+                    const user = auth.currentUser;
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    const userIsAdmin = userDoc.exists && userDoc.data().role === 'admin';
+
+                    if (!userIsAdmin && data.editRequest !== 'approved') {
+                        osForm.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+                        osForm.querySelectorAll('button[type="button"]').forEach(btn => btn.style.display = 'none');
+                        osForm.querySelector('#os-form-buttons').innerHTML = `<p class="text-yellow-400 text-right font-semibold">Aguardando aprovação do administrador para editar.</p>`;
+                    }
+                }
+            } else {
+                await populateLaudosDropdown();
+                addPecaField();
+                addFuncionarioField();
+            }
+            osForm.addEventListener('submit', handleOsFormSubmit);
+        }
+        
+        async function handleOsFormSubmit(e) {
+            e.preventDefault();
+            const osForm = document.getElementById('os-form');
+            const submitButton = osForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            const originalButtonText = submitButton.textContent;
+            submitButton.textContent = 'Salvando...';
+
+            const user = auth.currentUser;
+            const osId = document.getElementById('os-id').value;
+            const isEditing = osId !== '';
+
+            const collaborators = Array.from(document.querySelectorAll('.collaborator-item')).map(el => ({
+                id: el.dataset.id,
+                name: el.dataset.name
+            }));
+            const memberIds = [user.uid, ...collaborators.map(c => c.id)];
+
+            const data = {
+                userId: user.uid,
+                memberIds: memberIds,
+                collaborators: collaborators,
+                cliente: document.getElementById('os-cliente').value,
+                numeroOS: document.getElementById('os-numero-os').value,
+                tag: document.getElementById('os-tag').value,
+                motivo: document.getElementById('os-motivo').value,
+                tipoServico: document.getElementById('os-tipo-servico').value,
+                maquinaParou: document.querySelector('input[name="maquina-parou"]:checked').value === 'true',
+                causa: document.getElementById('os-causa').value,
+                descricaoServico: document.getElementById('os-descricao-servico').value,
+                inicioOcorrencia: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('os-inicio-ocorrencia').value)),
+                fimOcorrencia: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('os-fim-ocorrencia').value)),
+                linkedLaudoId: document.getElementById('os-linked-laudo').value,
+                pecas: Array.from(document.querySelectorAll('.peca-item')).map(div => ({ codigo: div.querySelector('[name=peca-codigo]').value, descricao: div.querySelector('[name=peca-descricao]').value, quantidade: Number(div.querySelector('[name=peca-quantidade]').value) })).filter(p => p.descricao && p.quantidade > 0),
+                maoDeObra: Array.from(document.querySelectorAll('.funcionario-item')).map(div => ({ nome: div.querySelector('[name=funcionario-nome]').value })).filter(f => f.nome),
+            };
+
+            const osPromise = isEditing 
+                ? db.collection('serviceOrders').doc(osId).update({...data, editRequest: 'used'})
+                : db.collection('serviceOrders').add({ ...data, status: 'aberto', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+            osPromise.then(async (docRef) => {
+                const finalOsId = isEditing ? osId : docRef.id;
+                if (data.linkedLaudoId) {
+                    await db.collection('laudos').doc(data.linkedLaudoId).update({ memberIds: memberIds });
+                }
+                showToast(`Ordem de Serviço ${isEditing ? 'atualizada' : 'salva'}!`, 'success');
+                goHome();
+            }).catch(error => {
+                showModal("Erro ao salvar a O.S.: " + error.message, 'Erro');
+            }).finally(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+            });
+        }
+
+        async function populateLaudosDropdown(selectedId = null) {
+            const select = document.getElementById('os-linked-laudo');
+            if (!select) return;
+            select.innerHTML = '<option value="">Nenhum</option>';
+            const user = auth.currentUser;
+            if (!user) return;
+            try {
+                // Query for laudos where the current user is a member
+                const laudosSnapshot = await db.collection('laudos').where('memberIds', 'array-contains', user.uid).get();
+                const sortedDocs = laudosSnapshot.docs.sort((a, b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
+                sortedDocs.forEach(doc => {
+                    const laudo = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = `Laudo: ${laudo.marca} ${laudo.modelo} (S/N: ${laudo.numeroSerie})`;
+                    if (doc.id === selectedId) option.selected = true;
+                    select.appendChild(option);
+                });
+            } catch (error) { 
+                console.error("Erro ao popular dropdown de laudos:", error); 
+            }
+        }
+
+        async function populateUsersDropdown() {
+            const select = document.getElementById('users-dropdown');
+            if(!select) return;
+            select.innerHTML = '<option value="">Selecione um usuário</option>';
+            const usersSnapshot = await db.collection('users').get();
+            usersSnapshot.forEach(doc => {
+                if (doc.id === auth.currentUser.uid) return; // Skip current user
+                const user = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = `${user.name} (${user.email})`;
+                select.appendChild(option);
+            });
+        }
+
+        function addCollaborator() {
+            const select = document.getElementById('users-dropdown');
+            const userId = select.value;
+            if (!userId) return;
+
+            const collaboratorsList = document.getElementById('collaborators-list');
+            const existing = collaboratorsList.querySelector(`[data-id="${userId}"]`);
+            if (existing) {
+                showToast('Este usuário já foi adicionado.', 'error');
+                return;
+            }
+
+            const userName = select.options[select.selectedIndex].text;
+            renderCollaborator({ id: userId, name: userName });
+            select.value = ''; // Reset dropdown
+        }
+
+        function renderCollaborator(collaborator) {
+            const collaboratorsList = document.getElementById('collaborators-list');
+            const div = document.createElement('div');
+            div.className = 'collaborator-item flex justify-between items-center bg-white/5 p-2 rounded-lg';
+            div.dataset.id = collaborator.id;
+            div.dataset.name = collaborator.name;
+            div.innerHTML = `<span>${collaborator.name}</span><button type="button" class="text-red-400 hover:text-red-300" onclick="this.parentElement.remove()">&#x2715;</button>`;
+            collaboratorsList.appendChild(div);
+        }
+
+        function addPecaField(data = { codigo: '', descricao: '', quantidade: '' }) {
+            const container = document.getElementById('pecas-container');
+            if(!container) return;
+            const div = document.createElement('div');
+            div.className = 'peca-item grid grid-cols-1 md:grid-cols-7 gap-2 items-center';
+            div.innerHTML = `<input type="text" name="peca-codigo" placeholder="Código" class="glass-input p-2 rounded-lg md:col-span-2" value="${data.codigo}"><input type="text" name="peca-descricao" placeholder="Descrição da Peça" class="glass-input p-2 rounded-lg md:col-span-3" value="${data.descricao}"><input type="number" name="peca-quantidade" placeholder="Qtd." class="glass-input p-2 rounded-lg md:col-span-1" min="1" value="${data.quantidade}"><button type="button" class="bg-red-500/50 hover:bg-red-500 p-2 rounded-lg md:col-span-1" onclick="this.parentElement.remove()">X</button>`;
+            container.appendChild(div);
+        }
+
+        function addFuncionarioField(data = { nome: '' }) {
+            const container = document.getElementById('mao-de-obra-container');
+            if(!container) return;
+            const div = document.createElement('div');
+            div.className = 'funcionario-item grid grid-cols-1 md:grid-cols-5 gap-2 items-center';
+            div.innerHTML = `<input type="text" name="funcionario-nome" placeholder="Nome do Funcionário" class="glass-input p-2 rounded-lg md:col-span-4" value="${data.nome}"><button type="button" class="bg-red-500/50 hover:bg-red-500 p-2 rounded-lg md:col-span-1" onclick="this.parentElement.remove()">X</button>`;
+            container.appendChild(div);
+        }
+
+        // --- FUNÇÕES DAS NOVAS FUNCIONALIDADES ---
+        async function requestPermission(collection, docId) {
+            const confirmed = await showModal(`Você deseja solicitar permissão ao administrador para editar este item?`, 'Solicitar Permissão', { isConfirm: true });
+            if (confirmed) {
+                db.collection(collection).doc(docId).update({ editRequest: 'pending' })
+                  .then(() => showToast("Solicitação enviada! O administrador será notificado.", 'info'))
+                  .catch(e => showModal("Erro ao enviar solicitação: " + e.message, 'Erro'));
             }
         }
         
-        function createMaintenanceFormHTML(data = {}, formId = null, version = 1, assets) {
-            const d = (key) => data[key] || '';
-            const dt = (key) => (data[key] ? new Date(data[key]).toISOString().slice(0, 16) : '');
-            const machineOptions = assets.machines.map(m => `<option value="${m.tag}" data-description="${m.description}" ${d('tag') === m.tag ? 'selected' : ''}>${m.tag} - ${m.description}</option>`).join('');
-            const pecasUtilizadasRows = (data.pecasUtilizadas || []).map(item => createPecaRowHTML(item, assets.parts)).join('');
-            return `<form id="maintenance-form" data-id="${formId || ''}" data-version="${version}" class="space-y-6"><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div><label class="font-semibold text-gray-300">Nº Ordem Serviço:</label><input type="text" name="ordemServico" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md" value="${d('ordemServico')}"></div><div><label class="font-semibold text-gray-300">TAG (Máquina):</label><select name="tag" id="tag-select" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md"><option value="">Selecione uma máquina</option>${machineOptions}</select></div><div class="md:col-span-3"><label class="font-semibold text-gray-300">Descrição do equipamento:</label><input type="text" id="equipamento-description" name="equipamento" class="w-full mt-1 p-2 bg-gray-800 border border-gray-600 rounded-md" value="${d('equipamento')}" readonly></div></div><h3 class="form-section-title">Detalhes da Solicitação</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="md:col-span-2"><label class="font-semibold text-gray-300">Motivo:</label><input type="text" name="motivo" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md" value="${d('motivo')}"></div><div><label class="font-semibold text-gray-300">Tipo de serviço:</label><div class="flex flex-wrap gap-x-4 gap-y-2 mt-2">${['CORRETIVA', 'PREVENTIVA', 'MELHORIA', 'PREDIAL'].map(type => `<label class="flex items-center gap-2"><input type="checkbox" name="tipoServico" value="${type}" ${(d('tipoServico') || []).includes(type) ? 'checked' : ''} class="w-4 h-4 text-orange-600 bg-gray-700 border-gray-600 rounded focus:ring-orange-500">${type}</label>`).join('')}</div></div><div class="flex items-center"><label class="flex items-center gap-2 font-semibold text-gray-300"><input type="checkbox" name="parouMaquina" class="w-5 h-5 text-orange-600 bg-gray-700 border-gray-600 rounded focus:ring-orange-500" ${d('parouMaquina') ? 'checked' : ''}>Parou a máquina?</label></div><div class="md:col-span-2"><label class="font-semibold text-gray-300">Causa:</label><textarea name="causa" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md h-24">${d('causa')}</textarea></div></div><h3 class="form-section-title">Descrição dos Serviços</h3><div class="space-y-4"><div><label class="font-semibold text-gray-300">Descrição do serviço a ser realizado:</label><textarea name="servicoRealizar" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md h-24">${d('servicoRealizar')}</textarea></div><div><label class="font-semibold text-gray-300">Descrição do serviço realizado:</label><textarea name="servicoRealizado" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md h-24">${d('servicoRealizado')}</textarea></div></div><h3 class="form-section-title">Mão de Obra</h3><table id="mao-de-obra-table" class="w-full text-sm"><thead><tr class="border-b border-gray-700"><th class="p-2 text-left">Nome</th><th class="p-2 text-left">Código</th><th class="w-12"></th></tr></thead><tbody>${(data.maoDeObra || []).map(item => `<tr class="border-b border-gray-700"><td class="p-2"><input type="text" name="maoObraNome" class="w-full p-2 bg-gray-900 border border-gray-600 rounded" value="${item.nome || ''}"></td><td class="p-2"><input type="text" name="maoObraCodigo" class="w-full p-2 bg-gray-900 border border-gray-600 rounded" value="${item.codigo || ''}"></td><td class="p-2 text-center"><button type="button" class="remove-row-button text-red-500 hover:text-red-700 text-2xl">&times;</button></td></tr>`).join('') || ''}</tbody></table><button type="button" id="add-mao-de-obra" class="mt-2 text-orange-500 font-semibold text-sm hover:text-orange-400">+ Adicionar Mão de Obra</button><h3 class="form-section-title">Peças Utilizadas</h3><table id="pecas-utilizadas-table" class="w-full text-sm"><thead><tr class="border-b border-gray-700"><th class="p-2 text-left">Peça</th><th class="p-2 text-left">Código</th><th class="p-2 text-left w-24">Qtd.</th><th class="w-12"></th></tr></thead><tbody>${pecasUtilizadasRows}</tbody></table><button type="button" id="add-peca-utilizada" class="mt-2 text-orange-500 font-semibold text-sm hover:text-orange-400">+ Adicionar Peça</button><h3 class="form-section-title">Controle de Tempo</h3><div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"><div><label class="font-semibold text-sm text-gray-300">Início Ocorrência:</label><input type="datetime-local" name="inicioOcorrencia" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md text-sm" value="${dt('inicioOcorrencia')}"></div><div><label class="font-semibold text-sm text-gray-300">Início Conserto:</label><input type="datetime-local" name="inicioConserto" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md text-sm" value="${dt('inicioConserto')}"></div><div><label class="font-semibold text-sm text-gray-300">Fim Conserto:</label><input type="datetime-local" name="fimConserto" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md text-sm" value="${dt('fimConserto')}"></div><div><label class="font-semibold text-sm text-gray-300">Fim Ocorrência:</label><input type="datetime-local" name="fimOcorrencia" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md text-sm" value="${dt('fimOcorrencia')}"></div></div><h3 class="form-section-title">Assinaturas</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="font-semibold text-gray-300">Visto Executante:</label><input type="text" name="vistoExecutante" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md" value="${d('vistoExecutante')}"></div><div><label class="font-semibold text-gray-300">Data:</label><input type="date" name="dataVistoExecutante" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md" value="${d('dataVistoExecutante')}"></div><div><label class="font-semibold text-gray-300">Visto Responsável:</label><input type="text" name="vistoResponsavel" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md" value="${d('vistoResponsavel')}"></div><div><label class="font-semibold text-gray-300">Data:</label><input type="date" name="dataVistoResponsavel" class="w-full mt-1 p-2 bg-gray-900 border border-gray-600 rounded-md" value="${d('dataVistoResponsavel')}"></div></div><div class="mt-8 flex justify-end gap-4"><button type="button" id="cancel-form-button" class="bg-gray-600 text-gray-200 font-bold py-2 px-6 rounded-lg hover:bg-gray-500">Cancelar</button><button type="submit" class="bg-orange-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-orange-700">Salvar Ficha</button></div></form>`;
-        }
-        function createPecaRowHTML(item = {}, parts = []) {
-            const partOptions = parts.map(p => `<option value="${p.id}" ${item.partId === p.id ? 'selected' : ''}>${p.description} (Cód: ${p.code})</option>`).join('');
-            return `<tr class="border-b border-gray-700"><td class="p-2"><select name="pecaId" class="part-select w-full p-2 bg-gray-900 border border-gray-600 rounded"><option value="">Selecione</option>${partOptions}</select></td><td class="p-2"><input type="text" name="pecaCodigo" class="w-full p-2 bg-gray-800 border border-gray-600 rounded" value="${item.codigo || ''}" readonly></td><td class="p-2"><input type="number" name="pecaQtd" class="w-full p-2 bg-gray-900 border border-gray-600 rounded" value="${item.qtd || ''}"></td><td class="p-2 text-center"><button type="button" class="remove-row-button text-red-500 hover:text-red-700 text-2xl">&times;</button></td></tr>`;
-        }
-        function createModalHTML(title, content, footer) {
-            return `<div class="modal-backdrop" id="modal-backdrop"><div class="bg-gray-800 rounded-xl shadow-2xl w-11/12 md:w-1/2 lg:w-1/3 modal-content flex flex-col border border-gray-700"><header class="p-4 border-b border-gray-700 flex justify-between items-center"><h3 class="text-xl font-bold text-gray-100">${title}</h3><button id="close-modal-button" class="text-gray-400 hover:text-red-500 text-2xl">&times;</button></header><main class="p-6 overflow-y-auto">${content}</main><footer class="p-4 border-t border-gray-700 bg-gray-900/50 flex justify-end">${footer}</footer></div></div>`;
-        }
-        async function viewFormDetails(formId) {
-            const docRef = doc(db, `artifacts/${appId}/public/data/maintenance_forms`, formId);
-            const docSnap = await getDoc(docRef);
-            if (!docSnap.exists()) return showError("Ficha não encontrada.");
-            const form = docSnap.data();
-            const versionsHTML = Object.keys(form.versions).sort((a,b) => b.slice(1) - a.slice(1)).map(v_key => `<option value="${v_key}" ${'v' + form.latestVersion == v_key ? 'selected' : ''}>Versão ${v_key.slice(1)}</option>`).join('');
-            const content = `<div class="mb-4"><label class="font-semibold text-gray-300">Selecione a Versão:</label><select id="version-selector" class="p-2 bg-gray-900 border border-gray-600 rounded-md ml-2">${versionsHTML}</select></div><div id="form-details-content"></div>`;
-            ui.modalContainer.innerHTML = createModalHTML('Detalhes da Ficha', content, `<button id="close-modal-footer" class="bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-500">Fechar</button>`);
-            const versionSelector = document.getElementById('version-selector');
-            const detailsContent = document.getElementById('form-details-content');
-            const renderVersionDetails = (versionKey) => {
-                const data = form.versions[versionKey];
-                const p = (label, value) => `<div class="py-1"><strong class="text-gray-400">${label}:</strong> ${value || 'N/A'}</div>`;
-                detailsContent.innerHTML = `<div class="space-y-3 text-sm text-gray-300">${p('OS Nº', data.ordemServico)}<div class="grid grid-cols-1 md:grid-cols-2 gap-x-4"> ${p('TAG', data.tag)} ${p('Equipamento', data.equipamento)} </div>${p('Motivo', data.motivo)}${p('Tipo Serviço', (data.tipoServico || []).join(', '))}${p('Parou a Máquina?', data.parouMaquina ? 'Sim' : 'Não')}<div class="prose mt-1 p-2 bg-gray-900 rounded"><strong class="text-gray-400">Causa:</strong><div>${data.causa || 'N/A'}</div></div><div class="prose mt-1 p-2 bg-gray-900 rounded"><strong class="text-gray-400">Serviço a Realizar:</strong><div>${data.servicoRealizar || 'N/A'}</div></div><div class="prose mt-1 p-2 bg-gray-900 rounded"><strong class="text-gray-400">Serviço Realizado:</strong><div>${data.servicoRealizado || 'N/A'}</div></div><div><strong>Mão de Obra:</strong><ul class="list-disc pl-5 mt-1">${(data.maoDeObra || []).map(i => `<li>${i.nome} (${i.codigo})</li>`).join('') || '<li>N/A</li>'}</ul></div><div><strong>Peças:</strong><ul class="list-disc pl-5 mt-1">${(data.pecasUtilizadas || []).map(i => `<li>${i.qtd}x ${i.descricao} (${i.codigo})</li>`).join('') || '<li>N/A</li>'}</ul></div><div><strong>Controle de Tempo:</strong><div class="grid grid-cols-2 gap-x-4">${p('In. Ocorrência', data.inicioOcorrencia)} ${p('In. Conserto', data.inicioConserto)} ${p('Fim Conserto', data.fimConserto)} ${p('Fim Ocorrência', data.fimOcorrencia)}</div></div><div><strong>Assinaturas:</strong><div class="grid grid-cols-2 gap-x-4">${p('Executante', `${data.vistoExecutante || ''} em ${data.dataVistoExecutante || ''}`)} ${p('Responsável', `${data.vistoResponsavel || ''} em ${data.dataVistoResponsavel || ''}`)}</div></div></div>`;
-            };
-            renderVersionDetails(versionSelector.value);
-            versionSelector.addEventListener('change', (e) => renderVersionDetails(e.target.value));
-            document.getElementById('close-modal-button').onclick = closeModal;
-            document.getElementById('close-modal-footer').onclick = closeModal;
+        async function managePermission(collection, docId, decision) {
+            const message = decision === 'approved' ? 'Aprovar a solicitação de edição?' : 'Negar a solicitação de edição?';
+            const confirmed = await showModal(message, 'Gerenciar Permissão', { isConfirm: true });
+            if (confirmed) {
+                db.collection(collection).doc(docId).update({ editRequest: decision })
+                .then(() => showToast(`Permissão ${decision === 'approved' ? 'aprovada' : 'negada'}.`, 'success'))
+                .catch(e => showModal("Erro ao processar a permissão: " + e.message, 'Erro'));
+            }
         }
 
+        async function deleteAllFromCollection(collectionName) {
+            const firstConfirm = await showModal(`Você está prestes a apagar <b>TODOS</b> os documentos da coleção "<b>${collectionName}</b>".<br><br>Esta ação é irreversível.`, 'Confirmar Exclusão em Massa', { isConfirm: true });
+            if (!firstConfirm) return;
+
+            const secondConfirm = await showModal(`Para confirmar, digite o nome da coleção que deseja apagar: "<b>${collectionName}</b>"`, 'Confirmação Final', { isConfirm: true, withInput: true });
+            if (!secondConfirm.confirmed || secondConfirm.value !== collectionName) {
+                showModal("Ação cancelada. O nome da coleção não corresponde.", 'Cancelado');
+                return;
+            }
+
+            loadingOverlay.style.display = 'flex';
+            try {
+                const collectionRef = db.collection(collectionName);
+                const snapshot = await collectionRef.get();
+                if(snapshot.empty) {
+                    showToast(`A coleção "${collectionName}" já está vazia.`, 'info');
+                    loadingOverlay.style.display = 'none';
+                    return;
+                }
+                
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => { batch.delete(doc.ref); });
+                
+                await batch.commit();
+                showModal(`Todos os ${snapshot.size} documentos de "${collectionName}" foram excluídos com sucesso.`, 'Sucesso');
+            } catch (error) {
+                showModal(`Ocorreu um erro: ${error.message}`, 'Erro na Exclusão');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        // --- LÓGICA DE AUTENTICAÇÃO E RENDERIZAÇÃO INICIAL ---
+        async function goHome() {
+            try {
+                 const user = auth.currentUser;
+                 if (!user) return;
+                 const doc = await db.collection('users').doc(user.uid).get();
+                 if (doc.exists && doc.data().role === 'admin') {
+                     renderView('admin-page');
+                 } else {
+                     renderView('dashboard-page');
+                 }
+            } catch (error) {
+                console.error("Erro ao navegar para home:", error);
+                renderView('dashboard-page'); // Fallback
+            }
+        }
+
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                appRoot.innerHTML = getAppShellHTML();
+                document.getElementById('user-email').textContent = user.email;
+                document.getElementById('logout-button').addEventListener('click', () => {
+                    loadingOverlay.style.display = 'flex';
+                    currentUnsubscribes.forEach(unsub => unsub());
+                    currentUnsubscribes = [];
+                    auth.signOut();
+                });
+
+                try {
+                    const doc = await db.collection('users').doc(user.uid).get();
+                    if (doc.exists && doc.data().role === 'admin') {
+                        document.getElementById('admin-button-container').innerHTML = `<button onclick="renderView('admin-page')" class="bg-amber-500/80 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-xl transition">Admin</button>`;
+                        renderView('admin-page');
+                    } else {
+                        document.getElementById('admin-button-container').innerHTML = '';
+                        renderView('dashboard-page');
+                    }
+                } catch (error) {
+                    showModal("Erro ao verificar permissões: " + error.message, 'Erro Crítico');
+                    auth.signOut();
+                }
+            } else {
+                appRoot.innerHTML = getAuthShellHTML();
+                setupAuthListeners();
+            }
+            loadingOverlay.style.display = 'none';
+        });
     </script>
 </body>
 </html>
