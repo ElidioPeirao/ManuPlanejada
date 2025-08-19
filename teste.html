@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Projetos</title>
+    <!-- Tailwind CSS para um design moderno e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Estilo para um carregamento suave da página e fundo com gradiente */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Fundo escuro base */
+            background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 2rem 2rem;
+            transition: background-color 0.3s;
+        }
+        /* Efeito de vidro para os painéis */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.6); /* Fundo semi-transparente escuro */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Adiciona um cursor de ponteiro na imagem do projeto para indicar que é clicável */
+        #project-image {
+            transition: opacity 0.2s;
+        }
+        #project-image:hover {
+            cursor: pointer;
+            opacity: 0.85;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <!-- Container Principal -->
+    <div class="w-full max-w-md p-4">
+
+        <!-- Container da Aplicação Principal -->
+        <div id="app-container" class="glass-panel p-8 rounded-2xl shadow-2xl text-center">
+            <h1 class="text-3xl font-bold text-white mb-6">Visualizador de Projetos</h1>
+            
+            <button id="buscar-projeto-btn" onclick="buscarProjeto()" class="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-700 transition-all duration-300 text-lg mb-6 shadow-lg shadow-orange-600/20">
+                <i class="fas fa-search mr-2"></i>Buscar Novo Projeto
+            </button>
+
+            <!-- Área de exibição da imagem -->
+            <div id="image-display" class="mt-6 p-4 border-2 border-dashed border-gray-700 rounded-lg min-h-[200px] flex items-center justify-center bg-gray-900/50">
+                <p id="image-placeholder" class="text-gray-400">Carregando projeto...</p>
+                <img id="project-image" src="" alt="Imagem do Projeto" class="max-w-full max-h-96 rounded-lg" style="display: none;"/>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Tela Cheia -->
+    <div id="fullscreen-modal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 backdrop-blur-sm" style="display: none;">
+        <span id="close-modal" class="absolute top-4 right-6 text-white text-5xl font-bold cursor-pointer hover:text-gray-300 transition-colors">&times;</span>
+        <img id="fullscreen-image" src="" alt="Imagem do Projeto em Tela Cheia" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl">
+    </div>
+
+    <script>
+        // --- LÓGICA DA APLICAÇÃO ---
+
+        // =================================================================================
+        //      CONFIGURAÇÃO DA API DO GOOGLE DRIVE
+        // =================================================================================
+        const GOOGLE_API_KEY = 'AIzaSyB_N0r6Sd8pDG79ZmxpOmmp7wh7191_iU8'; 
+        const GOOGLE_DRIVE_FOLDER_ID = '1NMXk3FiAg_fJAZJzOOkUJkfb_IGT8Np-';
+        // =================================================================================
+
+        const projectImage = document.getElementById('project-image');
+        const imagePlaceholder = document.getElementById('image-placeholder');
+        const buscarBtn = document.getElementById('buscar-projeto-btn');
+        const fullscreenModal = document.getElementById('fullscreen-modal');
+        const fullscreenImage = document.getElementById('fullscreen-image');
+        const closeModal = document.getElementById('close-modal');
+
+        let imageIdsCache = []; // Cache para não buscar os IDs toda vez
+
+        window.buscarProjeto = async () => {
+            buscarBtn.disabled = true;
+            buscarBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Buscando...';
+            imagePlaceholder.textContent = 'Buscando imagens na pasta...';
+            imagePlaceholder.style.display = 'block';
+            projectImage.style.display = 'none';
+
+            try {
+                // Se o cache de IDs estiver vazio, busca na API
+                if (imageIdsCache.length === 0) {
+                    const url = `https://www.googleapis.com/drive/v3/files?q='${GOOGLE_DRIVE_FOLDER_ID}'+in+parents&key=${GOOGLE_API_KEY}&fields=files(id)`;
+                    const response = await fetch(url);
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('Erro da API do Google:', errorData);
+                        throw new Error(`Erro na API do Google Drive: ${errorData.error.message || response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    if (!data.files || data.files.length === 0) {
+                        throw new Error("Nenhuma imagem encontrada na pasta. Verifique o ID e as permissões de compartilhamento.");
+                    }
+                    
+                    imageIdsCache = data.files.map(file => file.id);
+                }
+
+                // Escolhe um ID aleatório do cache
+                const randomIndex = Math.floor(Math.random() * imageIdsCache.length);
+                const randomImageID = imageIdsCache[randomIndex];
+                const imageUrl = `https://lh3.googleusercontent.com/d/${randomImageID}`;
+                
+                projectImage.src = imageUrl;
+                
+                projectImage.onload = () => {
+                    imagePlaceholder.style.display = 'none';
+                    projectImage.style.display = 'block';
+                    buscarBtn.innerHTML = '<i class="fas fa-search mr-2"></i>Buscar Outro Projeto';
+                    buscarBtn.disabled = false;
+                };
+
+                projectImage.onerror = () => {
+                    throw new Error("Não foi possível carregar a imagem. O ID pode ser inválido.");
+                };
+
+            } catch (error) {
+                console.error("Erro ao buscar projeto:", error);
+                imagePlaceholder.textContent = error.message;
+                buscarBtn.innerHTML = '<i class="fas fa-search mr-2"></i>Tentar Novamente';
+                buscarBtn.disabled = false;
+                // Limpa o cache se houver erro para tentar buscar de novo na próxima vez
+                imageIdsCache = []; 
+            }
+        };
+        
+        // --- LÓGICA DA TELA CHEIA ---
+        projectImage.addEventListener('click', () => {
+            // Garante que só abre a tela cheia se houver uma imagem visível
+            if(projectImage.src && projectImage.style.display !== 'none') {
+                fullscreenImage.src = projectImage.src;
+                fullscreenModal.style.display = 'flex'; // Usa 'flex' para ativar o modal
+            }
+        });
+
+        closeModal.addEventListener('click', () => {
+            fullscreenModal.style.display = 'none';
+            fullscreenImage.src = ''; // Limpa a imagem para economizar memória
+        });
+
+        fullscreenModal.addEventListener('click', (event) => {
+            // Fecha o modal se o clique for no fundo escuro (o próprio modal)
+            if (event.target === fullscreenModal) {
+                fullscreenModal.style.display = 'none';
+                fullscreenImage.src = '';
+            }
+        });
+
+        // Carrega a primeira imagem assim que a página é aberta
+        document.addEventListener('DOMContentLoaded', () => {
+            buscarProjeto();
+        });
+    </script>
+</body>
+</html>
