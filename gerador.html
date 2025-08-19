@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Projetos</title>
+    <!-- Tailwind CSS para um design moderno e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Estilo para um carregamento suave da página e fundo com gradiente */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Fundo escuro base */
+            background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 2rem 2rem;
+            transition: background-color 0.3s;
+        }
+        /* Esconde os containers por padrão para controlar a exibição via JS */
+        .hidden-container {
+            display: none;
+        }
+        /* Efeito de vidro para os painéis */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.6); /* Fundo semi-transparente escuro */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Adiciona um cursor de ponteiro na imagem do projeto para indicar que é clicável */
+        #project-image {
+            transition: opacity 0.2s;
+        }
+        #project-image:hover {
+            cursor: pointer;
+            opacity: 0.85;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <!-- Container Principal -->
+    <div class="w-full max-w-md p-4">
+
+        <!-- Tela de Carregamento Inicial -->
+        <div id="loading-container" class="text-center">
+            <i class="fas fa-spinner fa-spin text-4xl text-orange-500"></i>
+            <p class="mt-2 text-gray-300">Carregando...</p>
+        </div>
+
+        <!-- Container de Autenticação (Login, Cadastro, Reset de Senha) -->
+        <div id="auth-container" class="hidden-container glass-panel p-8 rounded-2xl shadow-2xl">
+            <!-- Formulário de Login -->
+            <div id="login-form">
+                <h2 class="text-3xl font-bold text-center text-white mb-6">Acessar Sistema</h2>
+                <div id="login-error" class="text-red-400 text-sm mb-4 text-center"></div>
+                <form onsubmit="handleLogin(event)">
+                    <div class="mb-4">
+                        <label for="login-email" class="block text-gray-300 font-semibold mb-2">Email</label>
+                        <input type="email" id="login-email" class="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="login-password" class="block text-gray-300 font-semibold mb-2">Senha</label>
+                        <input type="password" id="login-password" class="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                    </div>
+                    <button type="submit" class="w-full bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700 transition-all duration-300 shadow-lg shadow-orange-600/20">Entrar</button>
+                </form>
+                <div class="text-center mt-4">
+                    <a href="#" onclick="toggleForms('show-register')" class="text-sm text-orange-400 hover:underline">Não tem uma conta? Cadastre-se</a>
+                    <span class="mx-2 text-gray-500">|</span>
+                    <a href="#" onclick="toggleForms('show-reset')" class="text-sm text-gray-400 hover:underline">Esqueceu a senha?</a>
+                </div>
+            </div>
+
+            <!-- Formulário de Cadastro -->
+            <div id="register-form" class="hidden-container">
+                <h2 class="text-3xl font-bold text-center text-white mb-6">Criar Conta</h2>
+                <div id="register-message" class="text-sm mb-4 text-center"></div>
+                <form onsubmit="handleRegister(event)">
+                    <div class="mb-4">
+                        <label for="register-name" class="block text-gray-300 font-semibold mb-2">Nome Completo</label>
+                        <input type="text" id="register-name" class="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="register-cpf" class="block text-gray-300 font-semibold mb-2">CPF</label>
+                        <input type="text" id="register-cpf" class="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" placeholder="000.000.000-00" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="register-email" class="block text-gray-300 font-semibold mb-2">Email</label>
+                        <input type="email" id="register-email" class="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="register-password" class="block text-gray-300 font-semibold mb-2">Senha</label>
+                        <input type="password" id="register-password" class="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="register-confirm-password" class="block text-gray-300 font-semibold mb-2">Confirmar Senha</label>
+                        <input type="password" id="register-confirm-password" class="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                    </div>
+                    <button type="submit" class="w-full bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700 transition-all duration-300 shadow-lg shadow-orange-600/20">Cadastrar</e>
+                    <button type="button" onclick="toggleForms('show-login')" class="w-full mt-2 bg-gray-700/50 text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300">Voltar para Login</button>
+                </form>
+            </div>
+
+            <!-- Formulário de Recuperação de Senha -->
+            <div id="password-reset-form" class="hidden-container">
+                 <h2 class="text-3xl font-bold text-center text-white mb-6">Recuperar Senha</h2>
+                 <p class="text-center text-gray-400 text-sm mb-4">Insira seu e-mail e enviaremos um link para você redefinir sua senha.</p>
+                 <div id="reset-message" class="text-sm mb-4 text-center"></div>
+                 <form onsubmit="handlePasswordReset(event)">
+                     <div class="mb-4">
+                         <label for="reset-email" class="block text-gray-300 font-semibold mb-2">Email</label>
+                         <input type="email" id="reset-email" class="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                     </div>
+                     <button type="submit" class="w-full bg-orange-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-700 transition-all duration-300 shadow-lg shadow-orange-600/20">Enviar Link</button>
+                     <button type="button" onclick="toggleForms('show-login')" class="w-full mt-2 bg-gray-700/50 text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300">Voltar para Login</button>
+                 </form>
+            </div>
+        </div>
+
+        <!-- Container da Aplicação Principal (Pós-login) -->
+        <div id="app-container" class="hidden-container glass-panel p-8 rounded-2xl shadow-2xl text-center">
+            <h1 class="text-3xl font-bold text-white mb-2">Bem-vindo(a)!</h1>
+            <p id="user-email" class="text-orange-400 mb-6"></p>
+            
+            <button id="buscar-projeto-btn" onclick="buscarProjeto()" class="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-700 transition-all duration-300 text-lg mb-6 shadow-lg shadow-orange-600/20">
+                <i class="fas fa-search mr-2"></i>Buscar Projeto
+            </button>
+
+            <!-- Área de exibição da imagem -->
+            <div id="image-display" class="mt-6 p-4 border-2 border-dashed border-gray-700 rounded-lg min-h-[200px] flex items-center justify-center bg-gray-900/50">
+                <p id="image-placeholder" class="text-gray-400">A imagem do projeto aparecerá aqui.</p>
+                <img id="project-image" src="" alt="Imagem do Projeto" class="max-w-full max-h-96 rounded-lg hidden-container"/>
+            </div>
+
+            <button onclick="handleLogout()" class="mt-8 text-sm text-red-500 hover:underline">Sair do Sistema</button>
+        </div>
+    </div>
+
+    <!-- Modal de Tela Cheia -->
+    <div id="fullscreen-modal" class="hidden-container fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 backdrop-blur-sm">
+        <span id="close-modal" class="absolute top-4 right-6 text-white text-5xl font-bold cursor-pointer hover:text-gray-300 transition-colors">&times;</span>
+        <img id="fullscreen-image" src="" alt="Imagem do Projeto em Tela Cheia" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl">
+    </div>
+
+    <!-- Módulos do Firebase -->
+    <script type="module">
+        // Importações dos serviços do Firebase que vamos utilizar
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            sendPasswordResetEmail
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIGURAÇÃO DO FIREBASE ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyCtFDzU8CZFXU6RDI7PddO_Rpi1Hr7vb10",
+          authDomain: "hidraulicpress-7bf92.firebaseapp.com",
+          projectId: "hidraulicpress-7bf92",
+          storageBucket: "hidraulicpress-7bf92.firebasestorage.app",
+          messagingSenderId: "779960881614",
+          appId: "1:779960881614:web:4c0ee588e6202af3a61b9f",
+          measurementId: "G-KK4JLS54RE"
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Inicializa o Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- GERENCIAMENTO DE ESTADO DA UI ---
+        const loadingContainer = document.getElementById('loading-container');
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const passwordResetForm = document.getElementById('password-reset-form');
+        const projectImage = document.getElementById('project-image');
+        const fullscreenModal = document.getElementById('fullscreen-modal');
+        const fullscreenImage = document.getElementById('fullscreen-image');
+        const closeModal = document.getElementById('close-modal');
+
+        // Monitora o estado de autenticação do usuário
+        onAuthStateChanged(auth, user => {
+            loadingContainer.style.display = 'none'; // Esconde o loading
+            if (user) {
+                // Usuário está logado, mostra a aplicação diretamente
+                document.getElementById('user-email').textContent = user.email;
+                authContainer.style.display = 'none';
+                appContainer.style.display = 'block';
+            } else {
+                // Usuário não está logado, mostra a tela de autenticação
+                authContainer.style.display = 'block';
+                appContainer.style.display = 'none';
+            }
+        });
+        
+        // --- FUNÇÕES GLOBAIS PARA ACESSO NO HTML ---
+        window.handleLogin = async (event) => {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.textContent = '';
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // O onAuthStateChanged vai cuidar de redirecionar a tela
+            } catch (error) {
+                console.error("Erro de login:", error);
+                errorDiv.textContent = getAuthErrorMessage(error.code);
+            }
+        };
+
+        window.handleRegister = async (event) => {
+            event.preventDefault();
+            const name = document.getElementById('register-name').value;
+            const cpf = document.getElementById('register-cpf').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            const messageDiv = document.getElementById('register-message');
+            messageDiv.textContent = '';
+
+            if (password !== confirmPassword) {
+                messageDiv.textContent = 'As senhas não coincidem.';
+                messageDiv.className = 'text-sm mb-4 text-center text-red-400';
+                return;
+            }
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Salva informações adicionais do usuário no Firestore
+                const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/profile`, 'info');
+                await setDoc(userDocRef, {
+                    name: name,
+                    cpf: cpf,
+                    email: user.email,
+                    createdAt: new Date()
+                });
+                
+                // O onAuthStateChanged cuidará de mostrar a tela da aplicação.
+
+            } catch (error) {
+                console.error("Erro de cadastro:", error);
+                messageDiv.textContent = getAuthErrorMessage(error.code);
+                messageDiv.className = 'text-sm mb-4 text-center text-red-400';
+            }
+        };
+
+        window.handlePasswordReset = async (event) => {
+            event.preventDefault();
+            const email = document.getElementById('reset-email').value;
+            const messageDiv = document.getElementById('reset-message');
+            messageDiv.textContent = '';
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                messageDiv.textContent = 'Link de recuperação enviado! Verifique seu e-mail.';
+                messageDiv.className = 'text-sm mb-4 text-center text-green-400';
+            } catch (error) {
+                console.error("Erro ao resetar senha:", error);
+                messageDiv.textContent = getAuthErrorMessage(error.code);
+                messageDiv.className = 'text-sm mb-4 text-center text-red-400';
+            }
+        };
+
+        window.handleLogout = async () => {
+            try {
+                await signOut(auth);
+                // O onAuthStateChanged vai cuidar de redirecionar a tela
+            } catch (error) {
+                console.error("Erro ao fazer logout:", error);
+            }
+        };
+
+        window.toggleForms = (formToShow) => {
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'none';
+            passwordResetForm.style.display = 'none';
+
+            if (formToShow === 'show-login') {
+                loginForm.style.display = 'block';
+            } else if (formToShow === 'show-register') {
+                registerForm.style.display = 'block';
+            } else if (formToShow === 'show-reset') {
+                passwordResetForm.style.display = 'block';
+            }
+        };
+
+        // --- LÓGICA DA APLICAÇÃO ---
+
+        // =================================================================================
+        //      CONFIGURAÇÃO DA API DO GOOGLE DRIVE
+        // =================================================================================
+        const GOOGLE_API_KEY = 'AIzaSyB_N0r6Sd8pDG79ZmxpOmmp7wh7191_iU8'; 
+        const GOOGLE_DRIVE_FOLDER_ID = '1NMXk3FiAg_fJAZJzOOkUJkfb_IGT8Np-';
+        // =================================================================================
+
+        let imageIdsCache = []; // Cache para não buscar os IDs toda vez
+
+        window.buscarProjeto = async () => {
+            const imagePlaceholder = document.getElementById('image-placeholder');
+            const buscarBtn = document.getElementById('buscar-projeto-btn');
+
+            buscarBtn.disabled = true;
+            buscarBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Buscando...';
+            imagePlaceholder.textContent = 'Buscando imagens na pasta...';
+            imagePlaceholder.style.display = 'block';
+            projectImage.style.display = 'none';
+
+            try {
+                // Se o cache de IDs estiver vazio, busca na API
+                if (imageIdsCache.length === 0) {
+                    const url = `https://www.googleapis.com/drive/v3/files?q='${GOOGLE_DRIVE_FOLDER_ID}'+in+parents&key=${GOOGLE_API_KEY}&fields=files(id)`;
+                    const response = await fetch(url);
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('Erro da API do Google:', errorData);
+                        throw new Error(`Erro na API do Google Drive: ${errorData.error.message || response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    if (!data.files || data.files.length === 0) {
+                        throw new Error("Nenhuma imagem encontrada na pasta. Verifique o ID e as permissões de compartilhamento.");
+                    }
+                    
+                    imageIdsCache = data.files.map(file => file.id);
+                }
+
+                // Escolhe um ID aleatório do cache
+                const randomIndex = Math.floor(Math.random() * imageIdsCache.length);
+                const randomImageID = imageIdsCache[randomIndex];
+                const imageUrl = `https://lh3.googleusercontent.com/d/${randomImageID}`;
+                
+                projectImage.src = imageUrl;
+                
+                projectImage.onload = () => {
+                    imagePlaceholder.style.display = 'none';
+                    projectImage.style.display = 'block';
+                    buscarBtn.innerHTML = '<i class="fas fa-search mr-2"></i>Buscar Outro Projeto';
+                    buscarBtn.disabled = false;
+                };
+
+                projectImage.onerror = () => {
+                    throw new Error("Não foi possível carregar a imagem. O ID pode ser inválido.");
+                };
+
+            } catch (error) {
+                console.error("Erro ao buscar projeto:", error);
+                imagePlaceholder.textContent = error.message;
+                buscarBtn.innerHTML = '<i class="fas fa-search mr-2"></i>Tentar Novamente';
+                buscarBtn.disabled = false;
+                // Limpa o cache se houver erro para tentar buscar de novo na próxima vez
+                imageIdsCache = []; 
+            }
+        };
+        
+        // --- LÓGICA DA TELA CHEIA ---
+        projectImage.addEventListener('click', () => {
+            // Garante que só abre a tela cheia se houver uma imagem visível
+            if(projectImage.src && projectImage.style.display !== 'none') {
+                fullscreenImage.src = projectImage.src;
+                fullscreenModal.style.display = 'flex'; // Usa 'flex' para ativar o modal
+            }
+        });
+
+        closeModal.addEventListener('click', () => {
+            fullscreenModal.style.display = 'none';
+            fullscreenImage.src = ''; // Limpa a imagem para economizar memória
+        });
+
+        fullscreenModal.addEventListener('click', (event) => {
+            // Fecha o modal se o clique for no fundo escuro (o próprio modal)
+            if (event.target === fullscreenModal) {
+                fullscreenModal.style.display = 'none';
+                fullscreenImage.src = '';
+            }
+        });
+
+        // Função para traduzir erros do Firebase
+        function getAuthErrorMessage(errorCode) {
+            switch (errorCode) {
+                case 'auth/invalid-email':
+                    return 'O formato do e-mail é inválido.';
+                case 'auth/user-not-found':
+                    return 'Nenhuma conta encontrada com este e-mail.';
+                case 'auth/wrong-password':
+                    return 'Senha incorreta. Tente novamente.';
+                case 'auth/email-already-in-use':
+                    return 'Este e-mail já está sendo usado por outra conta.';
+                case 'auth/weak-password':
+                    return 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+                case 'auth/operation-not-allowed':
+                    return 'O login por e-mail/senha não está ativado. Habilite-o no seu painel do Firebase.';
+                default:
+                    return 'Ocorreu um erro. Por favor, tente novamente.';
+            }
+        }
+
+    </script>
+</body>
+</html>
